@@ -36,38 +36,64 @@ class Stock:
 		SN_head = SN / 1000
 		# Shanghai Stock Exchange - A
 		assert(SN_head == 600 or SN_head == 601 or SN_head == 603)
-		self.SN = int(SN)
+
+		filename = DATA_DIR+str(SN)+"_ss.csv"
+		assert(os.path.exists(filename))
+
+		# basic
 		try:
-			filename = DATA_DIR+str(SN)+"_ss.csv"
 			self.raw = np.array(pd.read_csv(filename))
-			(self._m, self._n)  = self.raw.shape
-			self.market = joblib.load('MarketPortfolio.mdl')
 		except Exception, e:
 			print Exception,":",e
+		self.SN = int(SN)
+		(self._m, self._n)  = self.raw.shape
+		self.market = joblib.load('MarketPortfolio.mdl')
+
 		# features
 		self.Volality10 = self.getVolality()
 		self.EarningPerShare = self.getEarningPerShare()
 		self.dailyROR = self.getROR()
 		self.marketROR = self.market.ROR
+		self.beta = self.getBeta()
 		self.HighROR = self.getROR(item=2)
 		self.LowROR = self.getROR(item=3)
 		self.WilliamsR = self.getWilliamsR()
+		
+		# raw
+		self.dumpRaw()
+
+
+	def dumpRaw(self):
+		self.Open = np.array(self.raw[:, 1])
+		self.High = np.array(self.raw[:, 2])
+		self.Low = np.array(self.raw[:, 3])
+		self.Close = np.array(self.raw[:, 4])
+		self.Volume = np.array(self.raw[:, 5])
+		self.Adj_Close = np.array(self.raw[:, 6])
+		# release raw
+		self.raw = []
+
 
 	def getVolality(self, item=6, interval=10):
 		"""item: 6-Adj Close, interval: 10days"""
 		return np.array([self.raw[i:i+interval, item].std() for i in range(self._m-interval)])
 
-	def getROR(self, item=6, interval=1):
-		"""item: 6-Adj Close"""
-		return np.array([float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item] for i in range(self._m-interval)])
-
 	def getEarningPerShare(self, item=6, interval=1):
 		"""item: 6-Adj Close"""
 		return np.array([float(self.raw[i, item]-self.raw[i+interval, item]) for i in range(self._m-interval)])
 
+	def getROR(self, item=6, interval=1):
+		"""item: 6-Adj Close"""
+		return np.array([float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item] for i in range(self._m-interval)])
+
+	def getBeta(self):
+		"""(dailyROR - rfr)/(marketROR - rfr) # risk_free_rate = 0"""
+		return np.array([float(self.dailyROR[i]-self.marketROR[i]) for i in range(min(len(self.dailyROR), len(self.marketROR)))])
+
 	def getWilliamsR(self, item=4):
 		"""1-Open, 2-High, 3-Low, item: 4-Close"""
 		return np.array([float(self.raw[i, 2]-self.raw[i, 4])*100/max(0.01, self.raw[i, 2]-self.raw[i, 3]) for i in range(self._m)])
+
 
 
 if __name__ == '__main__':
