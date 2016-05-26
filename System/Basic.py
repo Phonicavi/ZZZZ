@@ -63,6 +63,7 @@ class Stock:
 		self.SharpeR = self.getSharpeR()
 		self.WilliamsR = self.getWilliamsR()
 		self.TreynorR = self.getTreynorR()
+		self.PVT = self.getPVT()
 		# raw
 		self.dumpRaw()
 
@@ -74,10 +75,9 @@ class Stock:
 		self.Close = np.array(self.raw[:, 4])
 		self.Volume = np.array(self.raw[:, 5])
 		self.Adj_Close = np.array(self.raw[:, 6])
-		# release raw
+		# release raw & market
 		self.raw = []
-		# also remove market
-		# self.market = []
+		self.market = []
 
 
 	def getVolatility(self, item=6, interval=10):
@@ -94,7 +94,7 @@ class Stock:
 
 	def getBeta(self):
 		"""(dailyROR - rfr)/(marketROR - rfr) # risk_free_rate = 0"""
-		return np.array([float(self.dailyROR[i]-self.marketROR[i]) for i in range(min(len(self.dailyROR), len(self.marketROR)))])
+		return np.array([float(self.dailyROR[i])/self.marketROR[i] for i in range(min(len(self.dailyROR), len(self.marketROR)))])
 
 	def getSharpeR(self, interval=10):
 		"""(dailyROR - rfr)/volatility # risk_free_rate = 0"""
@@ -104,16 +104,22 @@ class Stock:
 			volatility = self.Volatility5
 		elif interval == 25:
 			volatility = self.Volatility25
-		return np.array([(sys.maxint if (volatility[i] == 0.0) else float(self.dailyROR[i])/volatility[i]) for i in range(min(len(self.dailyROR), len(volatility)))])
+		return np.array([float(self.dailyROR[i])/volatility[i] for i in range(min(len(self.dailyROR), len(volatility)))])
 
 	def getWilliamsR(self):
 		"""1-Open, 2-High, 3-Low, 4-Close"""
-		return np.array([(sys.maxint if (self.raw[i, 2]-self.raw[i, 3] == 0.0) else float(self.raw[i, 2]-self.raw[i, 4])*100/self.raw[i, 2]-self.raw[i, 3]) for i in range(self._m)])
+		return np.array([(float('nan') if (self.raw[i, 2]-self.raw[i, 3] == 0.0) else float(self.raw[i, 2]-self.raw[i, 4])*100/(self.raw[i, 2]-self.raw[i, 3])) for i in range(self._m)])
 
 	def getTreynorR(self):
 		"""(dailyROR - rfr)/beta # risk_free_rate = 0"""
-		return np.array([(sys.maxint if (self.beta[i] == 0.0) else float(self.dailyROR[i])/self.beta[i]) for i in range(min(len(self.dailyROR), len(self.beta)))])
+		return np.array([float(self.dailyROR[i])/self.beta[i] for i in range(min(len(self.dailyROR), len(self.beta)))])
 
+	def getPVT(self):
+		"""accumulation of PV: ROR*Volume"""
+		PV = np.array([(float(self.raw[i, 6]-self.raw[i+1, 6])/self.raw[i+1, 6])*self.raw[i, 5] for i in range(self._m-1)])
+		for i in xrange(len(PV)-1, 0, -1):
+			PV[i-1] += PV[i]
+		return PV
 
 
 if __name__ == '__main__':
