@@ -50,15 +50,19 @@ class Stock:
 		self.market = joblib.load('MarketPortfolio.mdl')
 
 		# features
-		self.Volality10 = self.getVolality()
+		self.Volatility5 = self.getVolatility(interval=5)
+		self.Volatility10 = self.getVolatility(interval=10)
+		self.Volatility25 = self.getVolatility(interval=25)
+
 		self.EarningPerShare = self.getEarningPerShare()
 		self.dailyROR = self.getROR()
 		self.marketROR = self.market.ROR
 		self.beta = self.getBeta()
 		self.HighROR = self.getROR(item=2)
 		self.LowROR = self.getROR(item=3)
+		self.SharpeR = self.getSharpeR()
 		self.WilliamsR = self.getWilliamsR()
-		
+		self.TreynorR = self.getTreynorR()
 		# raw
 		self.dumpRaw()
 
@@ -72,9 +76,11 @@ class Stock:
 		self.Adj_Close = np.array(self.raw[:, 6])
 		# release raw
 		self.raw = []
+		# also remove market
+		# self.market = []
 
 
-	def getVolality(self, item=6, interval=10):
+	def getVolatility(self, item=6, interval=10):
 		"""item: 6-Adj Close, interval: 10days"""
 		return np.array([self.raw[i:i+interval, item].std() for i in range(self._m-interval)])
 
@@ -90,15 +96,29 @@ class Stock:
 		"""(dailyROR - rfr)/(marketROR - rfr) # risk_free_rate = 0"""
 		return np.array([float(self.dailyROR[i]-self.marketROR[i]) for i in range(min(len(self.dailyROR), len(self.marketROR)))])
 
-	def getWilliamsR(self, item=4):
-		"""1-Open, 2-High, 3-Low, item: 4-Close"""
-		return np.array([float(self.raw[i, 2]-self.raw[i, 4])*100/max(0.01, self.raw[i, 2]-self.raw[i, 3]) for i in range(self._m)])
+	def getSharpeR(self, interval=10):
+		"""(dailyROR - rfr)/volatility # risk_free_rate = 0"""
+		assert(interval == 5 or interval == 10 or interval == 25)
+		volatility = self.Volatility10
+		if interval == 5:
+			volatility = self.Volatility5
+		elif interval == 25:
+			volatility = self.Volatility25
+		return np.array([(sys.maxint if (volatility[i] == 0.0) else float(self.dailyROR[i])/volatility[i]) for i in range(min(len(self.dailyROR), len(volatility)))])
+
+	def getWilliamsR(self):
+		"""1-Open, 2-High, 3-Low, 4-Close"""
+		return np.array([(sys.maxint if (self.raw[i, 2]-self.raw[i, 3] == 0.0) else float(self.raw[i, 2]-self.raw[i, 4])*100/self.raw[i, 2]-self.raw[i, 3]) for i in range(self._m)])
+
+	def getTreynorR(self):
+		"""(dailyROR - rfr)/beta # risk_free_rate = 0"""
+		return np.array([(sys.maxint if (self.beta[i] == 0.0) else float(self.dailyROR[i])/self.beta[i]) for i in range(min(len(self.dailyROR), len(self.beta)))])
 
 
 
 if __name__ == '__main__':
 	stk1 = Stock(600050)
 	print stk1.SN
-	print stk1.Volality10
-	stk1.getVolality()
+	print stk1.Volatility10
+	stk1.getVolatility()
 
