@@ -1,7 +1,7 @@
-from Basic import Stock, MarketPortfolio
-import os
+from Basic import Stock, MarketPortfolio, DataProcessor
 import numpy as np
 import pandas as pd
+import os
 
 MP_filename = "MarketPortfolio.mdl"
 
@@ -36,7 +36,11 @@ def play(self):
 	print error
 
 
+
+
 def Train():
+	StockPool = [600050, 600401, 600691, 600966, 600839]
+	# 
 	pass
 
 
@@ -45,6 +49,7 @@ if __name__ == '__main__':
 		mkt = MarketPortfolio()
 	pass
 
-	stk = Stock(600050)
+	stk = Stock(600050, '2014-06-01', 1)
+	dp = DataProcessor(stk, 10)
 	# print stk.beta
 
