@@ -42,7 +42,7 @@ class Stock:
 			_n : dimension_2 feature
 			market : SHANGZHENG-ZHISHU
 
-		basic_features
+		basic_features : raw data
 
 			Open
 			High
@@ -53,9 +53,11 @@ class Stock:
 
 		superior_features
 
-			Volatility5
-			Volatility10
-			Volatility25
+			Volatility : standard variance of the last t days
+			(t = 5, 10, 25)
+				Volatility5
+				Volatility10
+				Volatility25
 
 			EarningPerShare
 
@@ -70,6 +72,10 @@ class Stock:
 			WilliamsR
 			TreynorR
 			PVT
+
+		labels
+
+			label
 
 	"""
 	def __init__(self, SN):
@@ -104,6 +110,10 @@ class Stock:
 		self.WilliamsR = self.getWilliamsR()
 		self.TreynorR = self.getTreynorR()
 		self.PVT = self.getPVT()
+
+		# labels
+		self.label = self.getLabel()
+
 		# raw
 		self.dumpRaw()
 
@@ -118,6 +128,13 @@ class Stock:
 		# release raw & market
 		self.raw = []
 		self.market = []
+
+
+	def getLabel(self, item=6, interval=1):
+		"""(today = future - today), item: 6-Adj Close"""
+		label = [(1 if (self.raw[i-interval, item] > self.raw[i, item]) else (0 if (self.raw[i-interval, item] == self.raw[i, item]) else -1)) for i in xrange(interval, self._m)]
+		label.insert(0, float('nan'))
+		return np.array(label)
 
 
 	def getVolatility(self, item=6, interval=10):
