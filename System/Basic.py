@@ -1,3 +1,4 @@
+from scipy import stats
 from sklearn.externals import joblib
 import sys
 import os
@@ -10,13 +11,15 @@ DATA_DIR = "../data/"
 
 class MarketPortfolio:
 	"""
+		class for Stock:000001
+		SHANGZHENG-ZHISHU
 		class for Stock:000016
 		SHANGZHENG-50
 
 	"""
 	def __init__(self):
 		try:
-			filename = DATA_DIR+"000016_sz.csv"
+			filename = DATA_DIR+"000001_sz.csv"
 			self.raw = np.array(pd.read_csv(filename))
 			(self._m, self._n)  = self.raw.shape
 		except Exception, e:
@@ -31,7 +34,44 @@ class MarketPortfolio:
 
 
 class Stock:
-	"""class for Stock"""
+	"""
+		class for Stock
+
+			SN : serial number
+			_m : dimension_1 date
+			_n : dimension_2 feature
+			market : SHANGZHENG-ZHISHU
+
+		basic_features
+
+			Open
+			High
+			Low
+			Close
+			Volume
+			Adj_Close
+
+		superior_features
+
+			Volatility5
+			Volatility10
+			Volatility25
+
+			EarningPerShare
+
+			dailyROR
+			marketROR
+			* HighROR
+			* LowROR
+
+			alpha
+			beta
+			SharpeR
+			WilliamsR
+			TreynorR
+			PVT
+
+	"""
 	def __init__(self, SN):
 		SN_head = SN / 1000
 		# Shanghai Stock Exchange - A
@@ -48,6 +88,7 @@ class Stock:
 		self.SN = int(SN)
 		(self._m, self._n)  = self.raw.shape
 		self.market = joblib.load('MarketPortfolio.mdl')
+		self.marketROR = self.market.ROR
 
 		# features
 		self.Volatility5 = self.getVolatility(interval=5)
@@ -56,8 +97,7 @@ class Stock:
 
 		self.EarningPerShare = self.getEarningPerShare()
 		self.dailyROR = self.getROR()
-		self.marketROR = self.market.ROR
-		self.beta = self.getBeta()
+		self.alpha, self.beta = self.getAlphaBeta(interval=100)
 		self.HighROR = self.getROR(item=2)
 		self.LowROR = self.getROR(item=3)
 		self.SharpeR = self.getSharpeR()
@@ -92,12 +132,13 @@ class Stock:
 		"""item: 6-Adj Close"""
 		return np.array([float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item] for i in range(self._m-interval)])
 
-	def getBeta(self):
-		"""(dailyROR - rfr)/(marketROR - rfr) # risk_free_rate = 0"""
-		return np.array([float(self.dailyROR[i])/self.marketROR[i] for i in range(min(len(self.dailyROR), len(self.marketROR)))])
+	def getAlphaBeta(self, interval=100):
+		"""(cov(dailyROR, marketROR)/var(marketROR)) or linear-regression:intercept, slope"""
+		linreg = np.array([stats.linregress(self.marketROR[i:i+interval], self.dailyROR[i:i+interval]) for i in range(min(len(self.dailyROR), len(self.marketROR))-interval)])
+		return linreg[:, 0], linreg[:, 1]
 
 	def getSharpeR(self, interval=10):
-		"""(dailyROR - rfr)/volatility # risk_free_rate = 0"""
+		"""(dailyROR - rfr)/volatility # risk_free_return = 0"""
 		assert(interval == 5 or interval == 10 or interval == 25)
 		volatility = self.Volatility10
 		if interval == 5:
@@ -111,7 +152,7 @@ class Stock:
 		return np.array([(float('nan') if (self.raw[i, 2]-self.raw[i, 3] == 0.0) else float(self.raw[i, 2]-self.raw[i, 4])*100/(self.raw[i, 2]-self.raw[i, 3])) for i in range(self._m)])
 
 	def getTreynorR(self):
-		"""(dailyROR - rfr)/beta # risk_free_rate = 0"""
+		"""(dailyROR - rfr)/beta # risk_free_return = 0"""
 		return np.array([float(self.dailyROR[i])/self.beta[i] for i in range(min(len(self.dailyROR), len(self.beta)))])
 
 	def getPVT(self):
