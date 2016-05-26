@@ -48,7 +48,15 @@ if __name__ == '__main__':
 		mkt = MarketPortfolio()
 	pass
 
-	stk = Stock(600050, '2014-06-01', 1)
-	dp = DataProcessor(stk, 10)
-	# print stk.beta
+	stk = Stock(600050, '2014-06-02', 10)
+	dp = DataProcessor(stk, 1)
 
+	print stk._start, stk._end
+	print stk.index
+
+	print ' ---- '
+	print dp.X_raw.shape
+	print dp.date_raw[0]
+
+	# print dp.date_raw
+	# print dp.X_raw[:][0]

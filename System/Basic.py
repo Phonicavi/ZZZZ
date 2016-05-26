@@ -13,7 +13,21 @@ import pandas as pd
 
 
 DATA_DIR = "../data/"
+
+default_start_date = '2014-06-02'
+'''
+	>>> stock.Adj_Close,
+	>>> stock.Volatility10,
+	>>> stock.dailyROR,
+	>>> stock.alpha,
+	>>> stock.beta,
+	>>> stock.SharpeR,
+	>>> stock.TreynorR,
+	>>> stock.PVT
+
+'''
 USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1]
+
 MP_filename = "MarketPortfolio.base"
 SVM_filename = "SVM_Classification.mdl"
 
@@ -90,12 +104,9 @@ class Stock:
 	"""
 	def __init__(self, SN, start_date, interval):
 		SN_head = SN / 1000
-		# Shanghai Stock Exchange - A
-		assert(SN_head == 600 or SN_head == 601 or SN_head == 603)
-
+		assert(SN_head == 600 or SN_head == 601 or SN_head == 603) # Shanghai Stock Exchange - A
 		filename = DATA_DIR+str(SN)+"_ss.csv"
 		assert(os.path.exists(filename))
-
 		# basic
 		try:
 			self.raw = np.array(pd.read_csv(filename))
@@ -114,11 +125,15 @@ class Stock:
 		self._start = interval
 		self._end = self._m
 
-		# features
+		self.getFeatures()
+		self.getLabel(interval=interval)
+		self.dumpRaw(start_date=start_date)
+
+
+	def getFeatures(self):
 		self.Volatility5 = self.getVolatility(interval=5)
 		self.Volatility10 = self.getVolatility(interval=10)
 		self.Volatility25 = self.getVolatility(interval=25)
-
 		self.EarningPerShare = self.getEarningPerShare()
 		self.dailyROR = self.getROR()
 		self.alpha, self.beta = self.getAlphaBeta(interval=100)
@@ -129,15 +144,20 @@ class Stock:
 		self.TreynorR = self.getTreynorR()
 		self.PVT = self.getPVT()
 
-		# labels
-		self.label = self.getLabel(interval=interval)
+	def getLabel(self, item=6, interval=1):
+		"""Formula: today_label = sign(future - today), item: 6-Adj Close"""
+		label = [(1 if (self.raw[i-interval, item] > self.raw[i, item]) else 0) for i in xrange(interval, self._m)]
+		for x in range(interval):
+			label.insert(0, float('nan'))
+		self.label = np.array(label)
 
-		# raw
-		self.dumpRaw()
-
-
-	def dumpRaw(self):
+	def dumpRaw(self, start_date=default_start_date):
+		# date process
 		self.Date = np.array(self.raw[:, 0])
+		x = np.argwhere(self.Date==start_date)
+		assert(x.size == 1)
+		self.index = x[0, 0]
+		# basic features
 		self.Open = np.array(self.raw[:, 1])
 		self.High = np.array(self.raw[:, 2])
 		self.Low = np.array(self.raw[:, 3])
@@ -148,13 +168,6 @@ class Stock:
 		self.raw = []
 		self.market = []
 
-
-	def getLabel(self, item=6, interval=1):
-		"""Formula: (today = future - today), item: 6-Adj Close"""
-		label = [(1 if (self.raw[i-interval, item] > self.raw[i, item]) else 0) for i in xrange(interval, self._m)]
-		for x in range(interval):
-			label.insert(0, float('nan'))
-		return np.array(label)
 
 
 	def getVolatility(self, item=6, interval=10):
@@ -219,21 +232,22 @@ class DataProcessor():
 	def __init__(self, stock, window_size=10):
 		self.window_size = window_size
 		self.raw = self.filterFeature(stock=stock, used=USED_FEATURE)
-		(self.feature, self.X_raw, self.y_raw) = self.extractFeature(stock=stock, window_size=window_size)
+		(self.feature, self.X_raw, self.y_raw, self.date_raw) = self.extractFeature(stock=stock, window_size=window_size)
 		(self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(self.X_raw, self.y_raw, test_size=0.3, random_state=0)
 		self.Model = SVC()
+		# TODO
 
 	def filterFeature(self, stock, used=USED_FEATURE):
 		# print " feature selection & date intercept ..."
 		# feature selection & date intercept
 		raw = [stock.Adj_Close,
-					stock.Volatility10,
-					stock.dailyROR,
-					stock.alpha,
-					stock.beta,
-					stock.SharpeR,
-					stock.TreynorR,
-					stock.PVT]
+				stock.Volatility10,
+				stock.dailyROR,
+				stock.alpha,
+				stock.beta,
+				stock.SharpeR,
+				stock.TreynorR,
+				stock.PVT]
 		assert(len(raw) == len(USED_FEATURE))
 		tmp = []
 		for i in range(len(USED_FEATURE)):
@@ -257,6 +271,7 @@ class DataProcessor():
 		x_feat_all_days = np.array(x_feat_all_days)
 		X_raw = []
 		y_raw = []
+		date_raw = []
 		for i in xrange(stock._end-window_size, stock._start-1, -1):
 			x_sample = []
 			for offset in range(window_size):
@@ -264,8 +279,9 @@ class DataProcessor():
 			x_sample = np.array(x_sample)
 			X_raw.append(x_sample.reshape(x_sample.size))
 			y_raw.append(int(stock.label[i]))
+			date_raw.append(stock.Date[i])
 
-		return np.array(x_feat_all_days), np.array(X_raw), np.array(y_raw)
+		return np.array(x_feat_all_days), np.array(X_raw), np.array(y_raw), np.array(date_raw)
 
 	def training(self):
 		pass
@@ -274,19 +290,21 @@ class DataProcessor():
 
 
 if __name__ == '__main__':
-	stk = Stock(600050, '2014-06-01', 10)
+	stk = Stock(600050, default_start_date, 1)
 	# print stk.SN
 	# print stk.Volatility10
 	# stk.getVolatility()
 
-	dp = DataProcessor(stk, 12)
+	dp = DataProcessor(stk, 10)
 
 	model = SVC(probability=True, decision_function_shape='ovr', kernel='rbf', gamma=0.0078125, C=8)
 	model.fit(dp.X_train, dp.y_train)
 
 	y_true, y_pred = dp.y_test, model.predict(dp.X_test)
-
 	print classification_report(y_true, y_pred)
+
+	accuracy = model.score(dp.X_test, dp.y_test)
+	print("\t\tAccuracy = %0.4f" % accuracy)
 
 	'''
 	# set param by cross-validation
