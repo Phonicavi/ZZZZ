@@ -43,7 +43,6 @@ def Train():
 	# 
 	pass
 
-
 if __name__ == '__main__':
 	if not os.path.exists(MP_filename):
 		mkt = MarketPortfolio()

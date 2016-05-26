@@ -218,14 +218,15 @@ class DataProcessor():
 	""" DataProcessor """
 	def __init__(self, stock, window_size=10):
 		self.window_size = window_size
-		(self.feature, self.X_raw, self.y_raw) = self.extractFeature(stock=stock, window_size=window_size, used=USED_FEATURE)
+		self.raw = self.filterFeature(stock=stock, used=USED_FEATURE)
+		(self.feature, self.X_raw, self.y_raw) = self.extractFeature(stock=stock, window_size=window_size)
 		(self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(self.X_raw, self.y_raw, test_size=0.3, random_state=0)
 		self.Model = SVC()
 
-	def extractFeature(self, stock, window_size=10, used=USED_FEATURE):
+	def filterFeature(self, stock, used=USED_FEATURE):
 		# print " feature selection & date intercept ..."
 		# feature selection & date intercept
-		features = [stock.Adj_Close,
+		raw = [stock.Adj_Close,
 					stock.Volatility10,
 					stock.dailyROR,
 					stock.alpha,
@@ -233,22 +234,24 @@ class DataProcessor():
 					stock.SharpeR,
 					stock.TreynorR,
 					stock.PVT]
-		assert(len(features) == len(USED_FEATURE))
+		assert(len(raw) == len(USED_FEATURE))
 		tmp = []
 		for i in range(len(USED_FEATURE)):
 			if USED_FEATURE[i] == 1:
-				tmp.append(features[i])
-		features = tmp
-		tmp = [len(features[i]) for i in range(len(features))]
+				tmp.append(raw[i])
+		raw = tmp
+		tmp = [len(raw[i]) for i in range(len(raw))]
 		stock._end = min(tmp)-1
 		del tmp
+		return np.array(raw)
 
+	def extractFeature(self, stock, window_size=10):
 		# print " sample construction ..."
 		# sample construction
 		x_feat_all_days = []
 		for i in xrange(stock._end, stock._start-1, -1):
 			x_feat_a_day = []
-			for feat in features:
+			for feat in self.raw:
 				x_feat_a_day.append(feat[i])
 			x_feat_all_days.append(x_feat_a_day)
 		x_feat_all_days = np.array(x_feat_all_days)
@@ -257,12 +260,12 @@ class DataProcessor():
 		for i in xrange(stock._end-window_size, stock._start-1, -1):
 			x_sample = []
 			for offset in range(window_size):
-				x_sample.append(x_feat_all_days[i+offset])
+				x_sample.append(x_feat_all_days[i-stock._start+1+offset])
 			x_sample = np.array(x_sample)
 			X_raw.append(x_sample.reshape(x_sample.size))
 			y_raw.append(int(stock.label[i]))
 
-		return np.array(features), np.array(X_raw), np.array(y_raw)
+		return np.array(x_feat_all_days), np.array(X_raw), np.array(y_raw)
 
 	def training(self):
 		pass
@@ -271,13 +274,21 @@ class DataProcessor():
 
 
 if __name__ == '__main__':
-	stk = Stock(600050, '2014-06-01', 1)
+	stk = Stock(600050, '2014-06-01', 10)
 	# print stk.SN
 	# print stk.Volatility10
 	# stk.getVolatility()
 
 	dp = DataProcessor(stk, 12)
 
+	model = SVC(probability=True, decision_function_shape='ovr', kernel='rbf', gamma=0.0078125, C=8)
+	model.fit(dp.X_train, dp.y_train)
+
+	y_true, y_pred = dp.y_test, model.predict(dp.X_test)
+
+	print classification_report(y_true, y_pred)
+
+	'''
 	# set param by cross-validation
 	tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-2, 1e-1, 1], 'C': [1, 10, 100, 1000]}, {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
 	scores = ['precision', 'recall']
@@ -315,4 +326,4 @@ if __name__ == '__main__':
 		y_true, y_pred = dp.y_test, classifier.predict(dp.X_test)
 		print(classification_report(y_true, y_pred))
 		print()
-
+	'''
