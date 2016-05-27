@@ -1,10 +1,6 @@
-from Basic import Stock, MarketPortfolio, DataProcessor
+from Basic import Stock, MarketPortfolio
+from Tool import DataProcessor
 import numpy as np
-mkt = MarketPortfolio()
-stk = Stock(600050, '2014-06-02', 12)
-dp = DataProcessor(stk, 10)
-
-
 import pandas as pd
 import os
 
@@ -49,19 +45,16 @@ def Train():
 	pass
 
 if __name__ == '__main__':
-	if not os.path.exists(MP_filename):
-		mkt = MarketPortfolio()
-	pass
 
-	stk = Stock(600050, '2014-06-02', 1)
+	stk = Stock(600050, '2005-06-02', 1)
 	dp = DataProcessor(stk, 1)
 
 	print stk._start, stk._end
-	print stk.index
+	print stk._index
 
 	print ' ---- '
 	print dp.X_raw.shape
-	print dp.date_raw[0]
+	print dp.date_raw
 
 	# print dp.date_raw
 	# print dp.X_raw[:][0]
