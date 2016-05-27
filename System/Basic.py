@@ -17,8 +17,12 @@ DATA_DIR = "../data/"
 default_start_date = '2014-06-02'
 '''
 	>>> stock.Adj_Close,
+	>>> stock.Volatility5,
 	>>> stock.Volatility10,
+	>>> stock.Volatility25,
 	>>> stock.dailyROR,
+	>>> stock.HighROR,
+	>>> stock.LowROR,
 	>>> stock.alpha,
 	>>> stock.beta,
 	>>> stock.SharpeR,
@@ -26,7 +30,7 @@ default_start_date = '2014-06-02'
 	>>> stock.PVT
 
 '''
-USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1]
+USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 MP_filename = "MarketPortfolio.base"
 SVM_filename = "SVM_Classification.mdl"
@@ -45,7 +49,7 @@ class MarketPortfolio:
 	"""
 	def __init__(self):
 		try:
-			filename = DATA_DIR+"000001_sz.csv"
+			filename = DATA_DIR+"000001_ss.csv"
 			self.raw = np.array(pd.read_csv(filename))
 			(self._m, self._n)  = self.raw.shape
 		except Exception, e:
@@ -55,8 +59,8 @@ class MarketPortfolio:
 		joblib.dump(self, MP_filename, compress = 3)
 
 	def getROR(self, item=6, interval=1):
-		"""item: 6-Adj Close"""
-		return np.array([float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item] for i in range(self._m-interval)])
+		"""item: 6-Adj_Close"""
+		return np.array([(self.raw[i, 0], float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item]) for i in range(self._m-interval)])
 
 
 class Stock:
@@ -125,10 +129,32 @@ class Stock:
 		self._start = interval
 		self._end = self._m
 
+		self.dumpRaw(start_date=start_date)
 		self.getFeatures()
 		self.getLabel(interval=interval)
-		self.dumpRaw(start_date=start_date)
+		# release raw & market
+		self.raw = []
+		self.market = []
 
+
+	def dumpRaw(self, start_date=default_start_date):
+		# date process
+		self.Date = np.array(self.raw[:, 0])
+		x = np.argwhere(self.Date==start_date)
+		try:
+			assert(x.size == 1)
+			self._index = x[0, 0]
+		except Exception, e:
+			print "Fatel error illegal trading day ... "
+			raise e
+		self._index_date = start_date
+		# basic features
+		self.Open = np.array(self.raw[:, 1])
+		self.High = np.array(self.raw[:, 2])
+		self.Low = np.array(self.raw[:, 3])
+		self.Close = np.array(self.raw[:, 4])
+		self.Volume = np.array(self.raw[:, 5])
+		self.Adj_Close = np.array(self.raw[:, 6])
 
 	def getFeatures(self):
 		self.Volatility5 = self.getVolatility(interval=5)
@@ -146,46 +172,33 @@ class Stock:
 
 	def getLabel(self, item=6, interval=1):
 		"""Formula: today_label = sign(future - today), item: 6-Adj Close"""
-		label = [(1 if (self.raw[i-interval, item] > self.raw[i, item]) else 0) for i in xrange(interval, self._m)]
+		label = [(self.raw[i, 0], (1 if (self.raw[i-interval, item] > self.raw[i, item]) else 0)) for i in xrange(interval, self._m)]
 		for x in range(interval):
-			label.insert(0, float('nan'))
+			label.insert(0, (self.raw[x, 0], float('nan')))
 		self.label = np.array(label)
 
-	def dumpRaw(self, start_date=default_start_date):
-		# date process
-		self.Date = np.array(self.raw[:, 0])
-		x = np.argwhere(self.Date==start_date)
-		assert(x.size == 1)
-		self.index = x[0, 0]
-		# basic features
-		self.Open = np.array(self.raw[:, 1])
-		self.High = np.array(self.raw[:, 2])
-		self.Low = np.array(self.raw[:, 3])
-		self.Close = np.array(self.raw[:, 4])
-		self.Volume = np.array(self.raw[:, 5])
-		self.Adj_Close = np.array(self.raw[:, 6])
-		# release raw & market
-		self.raw = []
-		self.market = []
+	
 
 
 
 	def getVolatility(self, item=6, interval=10):
 		"""item: 6-Adj_Close, interval: 10days"""
-		return np.array([self.raw[i:i+interval, item].std() for i in range(self._m-interval)])
+		return np.array([(self.Date[i], self.raw[i:i+interval, item].std()) for i in range(self._m-interval)])
 
 	def getEarningPerShare(self, item=6, interval=1):
 		"""item: 6-Adj_Close"""
-		return np.array([float(self.raw[i, item]-self.raw[i+interval, item]) for i in range(self._m-interval)])
+		return np.array([(self.Date[i], float(self.raw[i, item]-self.raw[i+interval, item])) for i in range(self._m-interval)])
 
 	def getROR(self, item=6, interval=1):
 		"""item: 6-Adj_Close"""
-		return np.array([float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item] for i in range(self._m-interval)])
+		return np.array([(self.Date[i], float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item]) for i in range(self._m-interval)])
 
 	def getAlphaBeta(self, interval=100):
 		"""Formula: (cov(dailyROR, marketROR)/var(marketROR)) or linear-regression:intercept, slope"""
-		linreg = np.array([stats.linregress(self.marketROR[i:i+interval], self.dailyROR[i:i+interval]) for i in range(min(len(self.dailyROR), len(self.marketROR))-interval)])
-		return linreg[:, 0], linreg[:, 1]
+		linreg = np.array([stats.linregress(self.marketROR[i:i+interval][:, 1].astype(float), self.dailyROR[i:i+interval][:, 1].astype(float)) for i in range(min(len(self.dailyROR), len(self.marketROR))-interval)])
+		Alpha = [(self.Date[i], linreg[i, 0]) for i in range(min(len(self.dailyROR), len(self.marketROR))-interval)]
+		Beta = [(self.Date[i], linreg[i, 1]) for i in range(min(len(self.dailyROR), len(self.marketROR))-interval)]
+		return np.array(Alpha), np.array(Beta)
 
 	def getSharpeR(self, interval=10):
 		"""Formula: (dailyROR - rfr)/volatility # risk_free_return = 0"""
@@ -195,22 +208,25 @@ class Stock:
 			volatility = self.Volatility5
 		elif interval == 25:
 			volatility = self.Volatility25
-		return np.array([float(self.dailyROR[i])/volatility[i] for i in range(min(len(self.dailyROR), len(volatility)))])
+		return np.array([(self.Date[i], float(self.dailyROR[i, 1])/float(volatility[i, 1])) for i in range(min(len(self.dailyROR), len(volatility)))])
 
 	def getWilliamsR(self):
 		"""Formula:((High - Close)/(High - Low)), item: 1-Open, 2-High, 3-Low, 4-Close"""
-		return np.array([(float('nan') if (self.raw[i, 2]-self.raw[i, 3] == 0.0) else float(self.raw[i, 2]-self.raw[i, 4])*100/(self.raw[i, 2]-self.raw[i, 3])) for i in range(self._m)])
+		return np.array([(self.Date[i], (float('nan') if (self.raw[i, 2]-self.raw[i, 3] == 0.0) else float(self.raw[i, 2]-self.raw[i, 4])*100/(self.raw[i, 2]-self.raw[i, 3]))) for i in range(self._m)])
 
 	def getTreynorR(self):
 		"""Formula: (dailyROR - rfr)/beta # risk_free_return = 0"""
-		return np.array([float(self.dailyROR[i])/self.beta[i] for i in range(min(len(self.dailyROR), len(self.beta)))])
+		return np.array([(self.Date[i], float(self.dailyROR[i, 1])/float(self.beta[i, 1])) for i in range(min(len(self.dailyROR), len(self.beta)))])
 
 	def getPVT(self):
 		"""Accumulation of PV: ROR*Volume"""
 		PV = np.array([(float(self.raw[i, 6]-self.raw[i+1, 6])/self.raw[i+1, 6])*self.raw[i, 5] for i in range(self._m-1)])
 		for i in xrange(len(PV)-1, 0, -1):
 			PV[i-1] += PV[i]
-		return PV
+		PVT = []
+		for i in xrange(len(PV)-1, 0, -1):
+			PVT.insert(0, (self.Date[i], PV[i]))
+		return np.array(PVT)
 
 	"""
 		Set Values
@@ -233,16 +249,20 @@ class DataProcessor():
 		self.window_size = window_size
 		self.raw = self.filterFeature(stock=stock, used=USED_FEATURE)
 		(self.feature, self.X_raw, self.y_raw, self.date_raw) = self.extractFeature(stock=stock, window_size=window_size)
-		(self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(self.X_raw, self.y_raw, test_size=0.3, random_state=0)
-		self.Model = SVC()
+		# (self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(self.X_raw, self.y_raw, test_size=0.3, random_state=0)
+		# self.Model = SVC()
 		# TODO
 
 	def filterFeature(self, stock, used=USED_FEATURE):
-		# print " feature selection & date intercept ..."
 		# feature selection & date intercept
+		print "[DataProcessor] feature selection & date intercept ..."
 		raw = [stock.Adj_Close,
+				stock.Volatility5,
 				stock.Volatility10,
+				stock.Volatility25,
 				stock.dailyROR,
+				stock.HighROR,
+				stock.LowROR,
 				stock.alpha,
 				stock.beta,
 				stock.SharpeR,
@@ -260,28 +280,39 @@ class DataProcessor():
 		return np.array(raw)
 
 	def extractFeature(self, stock, window_size=10):
-		# print " sample construction ..."
 		# sample construction
+		print "[DataProcessor] sample construction ..."
 		x_feat_all_days = []
 		for i in xrange(stock._end, stock._start-1, -1):
+			# 
+			day = stock.Date[i]
 			x_feat_a_day = []
 			for feat in self.raw:
-				x_feat_a_day.append(feat[i])
-			x_feat_all_days.append(x_feat_a_day)
-		x_feat_all_days = np.array(x_feat_all_days)
+				assert(feat.ndim == 1 or feat.ndim == 2)
+				if feat.ndim == 1:
+					x_feat_a_day.append(feat[i])
+				elif feat.ndim == 2:
+					use_day = feat[:, 0]
+					index = np.argwhere(use_day==day)[0, 0]
+					x_feat_a_day.append(float(feat[index, 1]))
+			x_feat_all_days.insert(0, (day, x_feat_a_day))
+		# return x_feat_all_days
 		X_raw = []
 		y_raw = []
 		date_raw = []
 		for i in xrange(stock._end-window_size, stock._start-1, -1):
+			day = stock.Date[i]
+			assert(day == x_feat_all_days[i-stock._start][0])
 			x_sample = []
 			for offset in range(window_size):
-				x_sample.append(x_feat_all_days[i-stock._start+1+offset])
+				x_sample.append(x_feat_all_days[i-stock._start+offset][1])
 			x_sample = np.array(x_sample)
 			X_raw.append(x_sample.reshape(x_sample.size))
-			y_raw.append(int(stock.label[i]))
-			date_raw.append(stock.Date[i])
+			y_raw.append(int(stock.label[i, 1]))
+			date_raw.append(day)
 
-		return np.array(x_feat_all_days), np.array(X_raw), np.array(y_raw), np.array(date_raw)
+		return x_feat_all_days, np.array(X_raw), np.array(y_raw), np.array(date_raw)
+
 
 	def training(self):
 		pass
@@ -295,7 +326,9 @@ if __name__ == '__main__':
 	# print stk.Volatility10
 	# stk.getVolatility()
 
-	dp = DataProcessor(stk, 10)
+	# dp = DataProcessor(stk, 10)
+
+	'''
 
 	model = SVC(probability=True, decision_function_shape='ovr', kernel='rbf', gamma=0.0078125, C=8)
 	model.fit(dp.X_train, dp.y_train)
@@ -311,7 +344,7 @@ if __name__ == '__main__':
 	tuned_parameters = [{'kernel': ['rbf'], 'gamma': [2**i for i in range(-15,-4)], 'C': [2**i for i in range(-5,8)]}]
 
 	clf = GridSearchCV(SVC(decision_function_shape='ovr'), tuned_parameters, cv=7)
-	clf.fit(dp.X_test, dp.y_test)
+	clf.fit(dp.X_train, dp.y_train)
 	print clf.decision_function(dp.X_test)
 	print 'best params'
 	print clf.best_params_
@@ -321,6 +354,9 @@ if __name__ == '__main__':
 
 	accuracy = clf.score(dp.X_test, dp.y_test)
 	print("\t\tAccuracy = %0.4f" % accuracy)
+	
+	'''
+
 
 	'''
 	# set param by cross-validation

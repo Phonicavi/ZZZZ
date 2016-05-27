@@ -1,5 +1,9 @@
 from Basic import Stock, MarketPortfolio, DataProcessor
 import numpy as np
+stk = Stock(600050, '2014-06-02', 12)
+dp = DataProcessor(stk, 10)
+
+
 import pandas as pd
 import os
 
@@ -48,7 +52,7 @@ if __name__ == '__main__':
 		mkt = MarketPortfolio()
 	pass
 
-	stk = Stock(600050, '2014-06-02', 10)
+	stk = Stock(600050, '2014-06-02', 1)
 	dp = DataProcessor(stk, 1)
 
 	print stk._start, stk._end
