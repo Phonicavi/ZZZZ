@@ -1,8 +1,8 @@
 from scipy import stats
 from sklearn.externals import joblib
 from sklearn.cross_validation import train_test_split
-from sklearn.grid_search import GridSearchCV
-from sklearn.metrics import classification_report
+from sklearn.grid_search import GridSearchCV # as GSCV
+from sklearn.metrics import classification_report # as clfr
 from sklearn.svm import SVC
 from datetime import date
 import sys
@@ -304,6 +304,22 @@ if __name__ == '__main__':
 	print classification_report(y_true, y_pred)
 
 	accuracy = model.score(dp.X_test, dp.y_test)
+	print("\t\tAccuracy = %0.4f" % accuracy)
+
+
+	print ' ---- ---- ---- ---- '
+	tuned_parameters = [{'kernel': ['rbf'], 'gamma': [2**i for i in range(-15,-4)], 'C': [2**i for i in range(-5,8)]}]
+
+	clf = GridSearchCV(SVC(decision_function_shape='ovr'), tuned_parameters, cv=7)
+	clf.fit(dp.X_test, dp.y_test)
+	print clf.decision_function(dp.X_test)
+	print 'best params'
+	print clf.best_params_
+
+	y_true, y_pred = dp.y_test, clf.predict(dp.X_test)
+	print classification_report(y_true, y_pred)
+
+	accuracy = clf.score(dp.X_test, dp.y_test)
 	print("\t\tAccuracy = %0.4f" % accuracy)
 
 	'''
