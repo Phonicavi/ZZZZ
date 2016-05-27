@@ -10,7 +10,7 @@ import pandas as pd
 
 DATA_DIR = "../data/"
 
-default_start_date = '2014-06-02'
+default_start_date = '2008-06-13'
 MARKET_DIR = "MarketPortfolioA.base"
 
 class MarketPortfolio:
@@ -155,7 +155,7 @@ class Stock:
 
 	def getLabel(self, item=6, interval=1):
 		"""Formula: today_label = sign(future - today), item: 6-Adj Close"""
-		label = [(self.raw[i, 0], (1 if (self.raw[i-interval, item] > self.raw[i, item]) else 0)) for i in xrange(interval, self._m)]
+		label = [(self.raw[i, 0], (1 if (self.raw[i-interval, item] >= self.raw[i, item]) else -1)) for i in xrange(interval, self._m)]
 		for x in range(interval):
 			label.insert(0, (self.raw[x, 0], float('nan')))
 		self.label = np.array(label)
@@ -228,79 +228,6 @@ class Stock:
 
 
 if __name__ == '__main__':
-	stk = Stock(600050, default_start_date, 1)
-	# print stk.SN
-	# print stk.Volatility10
-	# stk.getVolatility()
-
-	# dp = DataProcessor(stk, 10)
-
-	'''
-
-	model = SVC(probability=True, decision_function_shape='ovr', kernel='rbf', gamma=0.0078125, C=8)
-	model.fit(dp.X_train, dp.y_train)
-
-	y_true, y_pred = dp.y_test, model.predict(dp.X_test)
-	print classification_report(y_true, y_pred)
-
-	accuracy = model.score(dp.X_test, dp.y_test)
-	print("\t\tAccuracy = %0.4f" % accuracy)
-
-
-	print ' ---- ---- ---- ---- '
-	tuned_parameters = [{'kernel': ['rbf'], 'gamma': [2**i for i in range(-15,-4)], 'C': [2**i for i in range(-5,8)]}]
-
-	clf = GridSearchCV(SVC(decision_function_shape='ovr'), tuned_parameters, cv=7)
-	clf.fit(dp.X_train, dp.y_train)
-	print clf.decision_function(dp.X_test)
-	print 'best params'
-	print clf.best_params_
-
-	y_true, y_pred = dp.y_test, clf.predict(dp.X_test)
-	print classification_report(y_true, y_pred)
-
-	accuracy = clf.score(dp.X_test, dp.y_test)
-	print("\t\tAccuracy = %0.4f" % accuracy)
+	pass
 	
-	'''
-
-
-	'''
-	# set param by cross-validation
-	tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-2, 1e-1, 1], 'C': [1, 10, 100, 1000]}, {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
-	scores = ['precision', 'recall']
-
-	for score in scores:
-		print("# Tuning hyper-parameters for %s" % score)
-		print()
-
-		# instaniation
-		print('\t------')
-		classifier = GridSearchCV(SVC(C=1), tuned_parameters, cv=5, scoring='%s_weighted' % score)
-		print('\t......')
-		classifier.fit(dp.X_train, dp.y_train)
-		print('\t------')
-
-		print("Best parameters set found on development set:")
-		print()
-		print(classifier.best_params_)
-		print()
-		print("Grid scores on development set:")
-		print()
-		for params, mean_score, scores in classifier.grid_scores_:
-			print("%0.4f (+/-%0.03f) for %r" % (mean_score, scores.std() * 2, params))
-		print()
-
-		# # check result
-		accuracy = classifier.score(dp.X_test, dp.y_test)
-		print("\t\tAccuracy = %0.4f" % accuracy)
-
-		print("Detailed classification report:")
-		print()
-		print("Model is trained on the full development set.")
-		print("Scores are computed on the full development set.")
-		print()
-		y_true, y_pred = dp.y_test, classifier.predict(dp.X_test)
-		print(classification_report(y_true, y_pred))
-		print()
-	'''
+	
