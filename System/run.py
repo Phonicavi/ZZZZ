@@ -1,5 +1,6 @@
 from Basic import Stock, MarketPortfolio, DataProcessor
 import numpy as np
+mkt = MarketPortfolio()
 stk = Stock(600050, '2014-06-02', 12)
 dp = DataProcessor(stk, 10)
 

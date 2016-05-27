@@ -32,34 +32,40 @@ default_start_date = '2014-06-02'
 '''
 USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
-MP_filename = "MarketPortfolio.base"
 SVM_filename = "SVM_Classification.mdl"
 
 
 
 class MarketPortfolio:
 	"""
-		class for Stock:000001
-		SHANGZHENG-ZHISHU
-		class for Stock:000002
-		SHANGZHENG-A
-		class for Stock:000016
-		SHANGZHENG-50
+		>>> 0: class for Stock:000001
+				SHANGZHENG-ZHISHU
+		>>> 1: class for Stock:000002
+				SHANGZHENG-A
+		>>> 2: class for Stock:000016
+				SHANGZHENG-50
 
 	"""
 	def __init__(self):
+		self.TYPE = 0
 		try:
-			filename = DATA_DIR+"000001_ss.csv"
+			inventory = [("MarketPortfolio.base", DATA_DIR+"000001_ss.csv"), 
+									("MarketPortfolioA.base", DATA_DIR+"000002.csv"), 
+									("MarketPortfolio50.base", DATA_DIR+"000016.csv")]
+			(MP_filename, filename) = inventory[self.TYPE]
 			self.raw = np.array(pd.read_csv(filename))
 			(self._m, self._n)  = self.raw.shape
 		except Exception, e:
 			print Exception,":",e
 		# expected return
-		self.ROR = self.getROR()
+		self.ROR = self.getROR(self.TYPE)
 		joblib.dump(self, MP_filename, compress = 3)
 
-	def getROR(self, item=6, interval=1):
-		"""item: 6-Adj_Close"""
+	def getROR(self, type, interval=1):
+		if type == 0:
+			item = 6
+		else:
+			item = 3
 		return np.array([(self.raw[i, 0], float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item]) for i in range(self._m-interval)])
 
 
