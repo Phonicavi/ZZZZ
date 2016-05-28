@@ -74,8 +74,8 @@ class Stock:
 
 			dailyROR
 			marketROR
-			* HighROR
-			* LowROR
+			HighROR
+			LowROR
 
 			alpha
 			beta
@@ -100,11 +100,13 @@ class Stock:
 		except Exception, e:
 			print Exception,":",e
 		self.SN = int(SN)
+		print "[Stock] Serial Number:", self.SN
 		(self._m, self._n)  = self.raw.shape
 		try:
 			if not os.path.exists(MARKET_DIR):
 				mkt = MarketPortfolio()
 			self.market = joblib.load(MARKET_DIR)
+			print "[Stock] market-portfolio loaded ..."
 		except Exception, e:
 			print Exception,":",e
 		self.marketROR = self.market.ROR
@@ -122,13 +124,14 @@ class Stock:
 
 	def dumpRaw(self, start_date=default_start_date):
 		# date process
+		print "[Stock] date process ..."
 		self.Date = np.array(self.raw[:, 0])
 		x = np.argwhere(self.Date==start_date)
 		try:
 			assert(x.size == 1)
 			self._index = x[0, 0]
 		except Exception, e:
-			print "Fatel error illegal trading day ... "
+			print "Fatel error: illegal trading day ... "
 			raise e
 		self._index_date = start_date
 		# basic features
@@ -140,6 +143,8 @@ class Stock:
 		self.Adj_Close = np.array(self.raw[:, 6])
 
 	def getFeatures(self):
+		# calculate features
+		print "[Stock] calculate features ..."
 		self.Volatility5 = self.getVolatility(interval=5)
 		self.Volatility10 = self.getVolatility(interval=10)
 		self.Volatility25 = self.getVolatility(interval=25)
@@ -155,12 +160,12 @@ class Stock:
 
 	def getLabel(self, item=6, interval=1):
 		"""Formula: today_label = sign(future - today), item: 6-Adj Close"""
-		label = [(self.raw[i, 0], (1 if (self.raw[i-interval, item] >= self.raw[i, item]) else -1)) for i in xrange(interval, self._m)]
+		# calculate labels
+		print "[Stock] calculate label ..."
+		label = [(self.raw[i, 0], (1 if (self.raw[i-interval, item] >= self.raw[i, item]) else 0)) for i in xrange(interval, self._m)]
 		for x in range(interval):
 			label.insert(0, (self.raw[x, 0], float('nan')))
 		self.label = np.array(label)
-
-	
 
 
 
@@ -220,14 +225,8 @@ class Stock:
 		self.label = getLabel(item, interval)
 
 
-	"""
-		Train and Predict
-
-	"""
-
 
 
 if __name__ == '__main__':
 	pass
-	
-	
+

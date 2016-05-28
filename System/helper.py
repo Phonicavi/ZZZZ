@@ -23,3 +23,7 @@ def save(item, filename):
 	f.write(str(item))
 	f.close()
 
+
+if __name__ == '__main__':
+	pass
+

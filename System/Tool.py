@@ -1,3 +1,4 @@
+from sklearn.externals import joblib
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV # as GSCV
 from sklearn.metrics import classification_report # as clfr
@@ -13,6 +14,9 @@ import math
 
 '''
 	>>> stock.Adj_Close,
+	>>> stock.High,
+	>>> stock.Low,
+	>>> stock.EarningPerShare,
 	>>> stock.Volatility5,
 	>>> stock.Volatility10,
 	>>> stock.Volatility25,
@@ -39,6 +43,7 @@ class DataProcessor():
 		self.window_size = window_size
 		self.raw = self.filterFeature(stock=stock, used=USED_FEATURE)
 		(self.feature, self.X_raw, self.y_raw, self.date_raw) = self.extractFeature(stock=stock, window_size=window_size)
+		self.setIndexDate(stock=stock)
 
 		self.X_train = self.X_raw[:int(len(self.X_raw)*DIVIDE_RATIO)]
 		self.X_test = self.X_raw[int(len(self.X_raw)*DIVIDE_RATIO):]
@@ -57,6 +62,9 @@ class DataProcessor():
 		# feature selection & date intercept
 		print "[DataProcessor] feature selection & date intercept ..."
 		raw = [stock.Adj_Close,
+				stock.High,
+				stock.Low,
+				stock.EarningPerShare,
 				stock.Volatility5,
 				stock.Volatility10,
 				stock.Volatility25,
@@ -84,7 +92,6 @@ class DataProcessor():
 		print "[DataProcessor] sample construction ..."
 		x_feat_all_days = []
 		for i in xrange(stock._end, stock._start-1, -1):
-			# 
 			day = stock.Date[i]
 			x_feat_a_day = []
 			for feat in self.raw:
@@ -96,7 +103,6 @@ class DataProcessor():
 					index = np.argwhere(use_day==day)[0, 0]
 					x_feat_a_day.append(float(feat[index, 1]))
 			x_feat_all_days.insert(0, (day, x_feat_a_day))
-		# return x_feat_all_days
 		X_raw = []
 		y_raw = []
 		date_raw = []
@@ -113,10 +119,33 @@ class DataProcessor():
 
 		return x_feat_all_days, np.array(X_raw), np.array(y_raw), np.array(date_raw)
 
+	def setIndexDate(self, stock):
+		# set Index_Start Date
+		x = np.argwhere(self.date_raw==stock._index_date)
+		try:
+			assert(x.size == 1)
+			self.predictNil = x[0, 0]
+		except Exception, e:
+			print "Fatel error: illegal trading day ..."
+			raise e
+		print "[DataProcessor] IndexDate", self.predictNil
+
+	def getRawByCount(self, start_count, end_count):
+		head = self.predictNil+start_count
+		tail = self.predictNil+end_count
+		try:
+			assert(head <= tail and head >= 0 and tail < self.date_raw.size)
+		except Exception, e:
+			print "Fatal error: raw date split out of bound ..."
+			raise e
+		X_split = self.X_raw[head:tail+1]
+		y_split = self.y_raw[head:tail+1]
+		date_split = self.date_raw[head:tail+1]
+		return X_split, y_split, date_split
+
+
 
 	def training(self):
-
-
 		pass
 
 
@@ -223,7 +252,7 @@ def onlineLearning_demo(onLine_batch_size = 1,interv =1):
 
 def forward_backward():
 	global USED_FEATURE
-	USED_FEATURE_copy = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+	USED_FEATURE_copy = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 	USED_FEATURE = USED_FEATURE_copy[:]
 	best_fea = USED_FEATURE[:]
 	best_f_score = onlineLearning_demo()
@@ -253,7 +282,7 @@ def forward_backward():
 
 
 if __name__ == '__main__':
-	USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+	USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 	
 	# forward_backward()
 	# 
