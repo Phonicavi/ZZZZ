@@ -14,6 +14,7 @@ import math
 
 '''
 	>>> stock.Adj_Close,
+	>>> stock.marketPrice,
 	>>> stock.High,
 	>>> stock.Low,
 	>>> stock.EarningPerShare,
@@ -62,6 +63,7 @@ class DataProcessor():
 		# feature selection & date intercept
 		print "[DataProcessor] feature selection & date intercept ..."
 		raw = [stock.Adj_Close,
+				stock.marketPrice,
 				stock.High,
 				stock.Low,
 				stock.EarningPerShare,
@@ -252,7 +254,7 @@ def onlineLearning_demo(onLine_batch_size = 1,interv =1):
 
 def forward_backward():
 	global USED_FEATURE
-	USED_FEATURE_copy = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+	USED_FEATURE_copy = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 	USED_FEATURE = USED_FEATURE_copy[:]
 	best_fea = USED_FEATURE[:]
 	best_f_score = onlineLearning_demo()
@@ -282,7 +284,7 @@ def forward_backward():
 
 
 if __name__ == '__main__':
-	USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+	USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 	
 	# forward_backward()
 	# 

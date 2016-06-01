@@ -10,8 +10,11 @@ import pandas as pd
 
 DATA_DIR = "../data/"
 
-default_start_date = '2008-06-13'
-MARKET_DIR = "MarketPortfolioA.base"
+default_start_date = '2014-06-02'
+default_base_type = 1
+MARKET_INVENTORY = [("MarketPortfolio.base", DATA_DIR+"000001_ss.csv"), 
+					("MarketPortfolioA.base", DATA_DIR+"000002.csv"), 
+					("MarketPortfolio50.base", DATA_DIR+"000016.csv")]
 
 class MarketPortfolio:
 	"""
@@ -23,20 +26,21 @@ class MarketPortfolio:
 				SHANGZHENG-50
 
 	"""
-	def __init__(self):
-		self.TYPE = 0
+	def __init__(self, base_type=1):
+		self.TYPE = base_type
 		try:
-			inventory = [("MarketPortfolio.base", DATA_DIR+"000001_ss.csv"), 
-									("MarketPortfolioA.base", DATA_DIR+"000002.csv"), 
-									("MarketPortfolio50.base", DATA_DIR+"000016.csv")]
-			(MP_filename, filename) = inventory[self.TYPE]
+			(MP_filename, filename) = MARKET_INVENTORY[self.TYPE]
 			self.raw = np.array(pd.read_csv(filename))
 			(self._m, self._n)  = self.raw.shape
 		except Exception, e:
 			print Exception,":",e
-		# expected return
+		# features
+		self.price = self.getPrice(item=6)
 		self.ROR = self.getROR(self.TYPE)
 		joblib.dump(self, MP_filename, compress = 3)
+
+	def getPrice(self, item=6):
+		return np.array( [(self.raw[i, 0], self.raw[i, item]) for i in range(self._m)] )
 
 	def getROR(self, type, interval=1):
 		if type == 0:
@@ -73,6 +77,7 @@ class Stock:
 			EarningPerShare
 
 			dailyROR
+			marketPrice
 			marketROR
 			HighROR
 			LowROR
@@ -103,12 +108,13 @@ class Stock:
 		print "[Stock] Serial Number:", self.SN
 		(self._m, self._n)  = self.raw.shape
 		try:
-			if not os.path.exists(MARKET_DIR):
-				mkt = MarketPortfolio()
-			self.market = joblib.load(MARKET_DIR)
+			if not os.path.exists(MARKET_INVENTORY[default_base_type][0]):
+				mkt = MarketPortfolio(default_base_type)
+			self.market = joblib.load(MARKET_INVENTORY[default_base_type][0])
 			print "[Stock] market-portfolio loaded ..."
 		except Exception, e:
 			print Exception,":",e
+		self.marketPrice = self.market.price
 		self.marketROR = self.market.ROR
 		# available data range
 		self._start = interval
@@ -131,7 +137,7 @@ class Stock:
 			assert(x.size == 1)
 			self._index = x[0, 0]
 		except Exception, e:
-			print "Fatel error: illegal trading day ... "
+			print "Fatel error illegal trading day ... "
 			raise e
 		self._index_date = start_date
 		# basic features
