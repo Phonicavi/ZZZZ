@@ -115,7 +115,7 @@ def onlineLearning_demo(SSN, onLine_batch_size=1, interv=1):
 			sys.stdout.flush()
 			trainHead = step-train_batch_size
 			trainTail = step
-			clf.fit(dp.X_raw[trainHead:trainTail],dp.y_raw[trainHead:trainTail],)
+			clf.fit(dp.X_raw[trainHead:trainTail].tolist(),dp.y_raw[trainHead:trainTail].tolist(),)
 			# print clf.score(dp.X_raw[trainHead:trainTail],dp.y_raw[trainHead:trainTail])
 
 			testHead = step
@@ -158,10 +158,10 @@ if __name__ == '__main__':
 
 	# dp.training()
 
-	'''
+	
 	for stock in StockPool:
-		onlineLearning_demo(SSN=stock, onLine_batch_size=1, interv=1)
-	'''
+		onlineLearning_demo(SSN=stock, onLine_batch_size=1, interv=20)
+	
 	# offlineLearning_demo(interv = 20)
 
 

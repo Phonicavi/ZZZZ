@@ -2,13 +2,21 @@ from sklearn.externals import joblib
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV # as GSCV
 from sklearn.metrics import classification_report # as clfr
-from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
+from sklearn.externals import joblib
+from sklearn.svm import SVC,NuSVC
 from datetime import date
 import sys
 import os
 import helper
 import numpy as np
 import pandas as pd
+from copy import deepcopy
+
 
 
 '''
@@ -34,6 +42,29 @@ USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 SVM_filename = "SVM_Classification.mdl"
 default_divide_ratio = 0.9
+
+tuned_parameters = [
+					{'kernel':['rbf'], 'gamma':[2**i for i in range(-8, 8)], 'C':[2**i for i in range(-8, 8)]},
+ 					# {'kernel':['linear'], 'C':[2**i for i in range(-8, 9, 2)]},
+ 					# {'kernel':['poly'], 'gamma':[2**i for i in range(-8, 9, 2)], 'C':[2**i for i in range(-8, 9, 2)], 'degree':[2, 3, 4]}
+ 					]
+classifiers = [
+				# ("Decision Tree", DecisionTreeClassifier(class_weight='balanced')), 
+				# ("Random Forest(entropy)", RandomForestClassifier(criterion='entropy', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
+				# ("Extrenmely Forest(entropy)", ExtraTreesClassifier(criterion='entropy', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
+
+				# ("Random Forest(gini)", RandomForestClassifier(criterion='gini', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
+				# ("Random Forest", RandomForestClassifier(criterion='entropy', n_estimators=5000, max_features='auto', n_jobs=-1)),
+				("AdaBoost", AdaBoostClassifier(n_estimators=100)),
+				# ("Gaussian Naive Bayes", GaussianNB()),
+				# ("LDA", LDA()),
+				# ("QDA", QDA()),
+				# ("GBDT", GradientBoostingClassifier(n_estimators=200, max_features='auto')),
+				# ("SVM", GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=5)),
+				# ("SVM", NuSVC(class_weight='balanced'))
+				]
+clf = GradientBoostingClassifier(n_estimators=200, max_features='auto')
+
 
 
 class DataProcessor():
@@ -142,33 +173,96 @@ class DataProcessor():
 		except Exception, e:
 			print "Fatal error: raw date split out of bound ..."
 			raise e
-		X_split = self.X_raw[head:tail+1]
-		y_split = self.y_raw[head:tail+1]
-		date_split = self.date_raw[head:tail+1]
+		X_split = self.X_raw[head:tail]
+		y_split = self.y_raw[head:tail]
+		date_split = self.date_raw[head:tail]
 		return X_split, y_split, date_split
 
+	def getSingleRaw(self, date_count):
+		pos = self.predictNil+date_count
+		try:
+			assert(pos >= 0 and pos < self.date_raw.size)
+		except Exception, e:
+			print "Fatal error: date position out of bound ..."
+			raise e
+		X_single = self.X_raw[pos]
+		y_single = self.y_raw[pos]
+		date_single = self.date_raw[pos]
+		return X_single, y_single, date_single
+
 	def getPrice(self, stock, date_count):
-		return stock.Adj_Close[self.predictNil+date_count]
+		# print '\nstart get price cnt:', date_count
+		date_string = self.getDateStringByDateCount(date_count)
+		x = np.argwhere(stock.Date==date_string)
+		try:
+			assert(x.size==1)
+			index = x[0, 0]
+			# print 'getPrice'
+		except Exception, e:
+			print "Fatal error: date index out of bound ..."
+			raise e
+		return stock.Adj_Close[index]
+
+	def getMaxDateCount(self):
+		return self.date_raw.shape[0]-self.predictNil
 
 
-	def training(self, flag=False):
-		(self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(self.X_raw, self.y_raw, test_size=0.3, random_state=0)
-		if flag:
-			self.Model = SVC(C=0.03125, gamma=3.0517578125e-05, kernel='rbf', probability=True, decision_function_shape='ovr')
-			self.Model.fit(self.X_train, self.y_train)
+	# def training(self, flag=False):
+	# 	(self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(self.X_raw, self.y_raw, test_size=0.3, random_state=0)
+	# 	if flag:
+	# 		self.Model = SVC(C=0.03125, gamma=3.0517578125e-05, kernel='rbf', probability=True, decision_function_shape='ovr')
+	# 		self.Model.fit(self.X_train, self.y_train)
+	# 	else:
+	# 		tuned_parameters = [{'kernel': ['rbf'], 'gamma': [2**i for i in range(-15,-4)], 'C': [2**i for i in range(-5,8)]}]
+	# 		self.Model = GridSearchCV(SVC(decision_function_shape='ovr'), tuned_parameters, cv=7)
+	# 		self.Model.fit(self.X_train, self.y_train)
+	# 		joblib.dump(self.Model, SVM_filename, compress = 3)
+	# 		print self.Model.decision_function(self.X_test)
+	# 		print self.Model.best_params_
+
+	# 	y_true, y_pred = self.y_test, self.Model.predict(self.X_test)
+	# 	print classification_report(y_true, y_pred)
+
+	# 	accuracy = self.Model.score(self.X_test, self.y_test)
+	# 	print("\t\tAccuracy = %0.4f" % accuracy)
+
+	def predictNext(self,stock, pred_date_count,train_batch_size = 100):
+		trainX,trainY,D = self.getRawByCount(pred_date_count-train_batch_size,pred_date_count);
+		# print trainX[0]
+		# print list(trainX)
+		clf.fit((trainX),(trainY))
+		# print 'dsds'
+		testX,Y,D= self.getSingleRaw(pred_date_count)
+		# print testX
+		predY = clf.predict(testX.reshape(1,-1))
+		return predY[0],Y,D
+
+	def getDateCountByDateString(self, date_string):
+		x = np.argwhere(self.date_raw==date_string)
+		if x.size == 1:
+			return x[0, 0]-self.predictNil
 		else:
-			tuned_parameters = [{'kernel': ['rbf'], 'gamma': [2**i for i in range(-15,-4)], 'C': [2**i for i in range(-5,8)]}]
-			self.Model = GridSearchCV(SVC(decision_function_shape='ovr'), tuned_parameters, cv=7)
-			self.Model.fit(self.X_train, self.y_train)
-			joblib.dump(self.Model, SVM_filename, compress = 3)
-			print self.Model.decision_function(self.X_test)
-			print self.Model.best_params_
+			index = 0
+			for item in self.date_raw:
+				if item > date_string:
+					return index-self.predictNil
+				index += 1
+			return index-self.predictNil
 
-		y_true, y_pred = self.y_test, self.Model.predict(self.X_test)
-		print classification_report(y_true, y_pred)
+	def getDateStringByDateCount(self, date_count):
+		return self.date_raw[self.predictNil+date_count]
 
-		accuracy = self.Model.score(self.X_test, self.y_test)
-		print("\t\tAccuracy = %0.4f" % accuracy)
+
+'''
+import numpy as np
+from Basic import *
+from Tool import *
+stk = Stock(600050, '2005-06-02', 1)
+dp = DataProcessor(stk, 3)
+
+'''
+		
+
 
 
 if __name__ == '__main__':

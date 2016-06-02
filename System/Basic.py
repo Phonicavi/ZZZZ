@@ -6,6 +6,7 @@ import os
 import helper
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 
 
 DATA_DIR = "../data/"
@@ -112,9 +113,12 @@ class Stock:
 		except Exception, e:
 			print Exception,":",e
 		# check date matching
+		# self.cleanDate()
+		# print self.market
 		try:
 			assert(self.cleanDate())
 		except Exception, e:
+			# print e
 			print "Fatal error dates not matched ... "
 			raise e
 		# available data range
