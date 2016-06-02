@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-  
 from sklearn.externals import joblib
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV # as GSCV
@@ -126,7 +127,7 @@ class DataProcessor():
 						assert(x.size == 1)
 						index = x[0, 0]
 					except Exception, e:
-						print "Fatel error missing day ... "
+						print "Fatal error: missing day ... "
 						raise e
 					x_feat_a_day.append(float(feat[index, 1]))
 			x_feat_all_days.insert(0, (day, x_feat_a_day))
@@ -153,7 +154,7 @@ class DataProcessor():
 			assert(x.size == 1)
 			self.predictNil = x[0, 0]
 		except Exception, e:
-			print "Fatel error: illegal trading day ..."
+			print "Fatal error: illegal trading day ..."
 			raise e
 		print "[DataProcessor] IndexDate", self.predictNil
 		print "[DataProcessor] Predict: start from ", self.date_raw[self.predictNil]
@@ -190,14 +191,12 @@ class DataProcessor():
 		date_single = self.date_raw[pos]
 		return X_single, y_single, date_single
 
-	def getPrice(self, stock, date_count):
-		# print '\nstart get price cnt:', date_count
+	def getPriceByCount(self, stock, date_count):
 		date_string = self.getDateStringByDateCount(date_count)
 		x = np.argwhere(stock.Date==date_string)
 		try:
 			assert(x.size==1)
 			index = x[0, 0]
-			# print 'getPrice'
 		except Exception, e:
 			print "Fatal error: date index out of bound ..."
 			raise e
@@ -205,26 +204,6 @@ class DataProcessor():
 
 	def getMaxDateCount(self):
 		return self.date_raw.shape[0]-self.predictNil
-
-
-	# def training(self, flag=False):
-	# 	(self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(self.X_raw, self.y_raw, test_size=0.3, random_state=0)
-	# 	if flag:
-	# 		self.Model = SVC(C=0.03125, gamma=3.0517578125e-05, kernel='rbf', probability=True, decision_function_shape='ovr')
-	# 		self.Model.fit(self.X_train, self.y_train)
-	# 	else:
-	# 		tuned_parameters = [{'kernel': ['rbf'], 'gamma': [2**i for i in range(-15,-4)], 'C': [2**i for i in range(-5,8)]}]
-	# 		self.Model = GridSearchCV(SVC(decision_function_shape='ovr'), tuned_parameters, cv=7)
-	# 		self.Model.fit(self.X_train, self.y_train)
-	# 		joblib.dump(self.Model, SVM_filename, compress = 3)
-	# 		print self.Model.decision_function(self.X_test)
-	# 		print self.Model.best_params_
-
-	# 	y_true, y_pred = self.y_test, self.Model.predict(self.X_test)
-	# 	print classification_report(y_true, y_pred)
-
-	# 	accuracy = self.Model.score(self.X_test, self.y_test)
-	# 	print("\t\tAccuracy = %0.4f" % accuracy)
 
 	def predictNext(self,stock, pred_date_count,train_batch_size = 100):
 		trainX,trainY,D = self.getRawByCount(pred_date_count-train_batch_size,pred_date_count);
@@ -251,17 +230,6 @@ class DataProcessor():
 
 	def getDateStringByDateCount(self, date_count):
 		return self.date_raw[self.predictNil+date_count]
-
-
-'''
-import numpy as np
-from Basic import *
-from Tool import *
-stk = Stock(600050, '2005-06-02', 1)
-dp = DataProcessor(stk, 3)
-
-'''
-		
 
 
 

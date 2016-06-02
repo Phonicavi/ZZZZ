@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-  
 from scipy import stats
 from sklearn.externals import joblib
 from datetime import date
@@ -119,7 +120,7 @@ class Stock:
 			assert(self.cleanDate())
 		except Exception, e:
 			# print e
-			print "Fatal error dates not matched ... "
+			print "Fatal error: dates not matched ... "
 			raise e
 		# available data range
 		(self._m, self._n) = self.raw.shape
@@ -181,7 +182,7 @@ class Stock:
 			assert(x.size == 1)
 			self._index = x[0, 0]
 		except Exception, e:
-			print "Fatel error illegal trading day ... "
+			print "Fatal error illegal trading day ... "
 			raise e
 		self._index_date = start_date
 		# basic features

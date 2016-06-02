@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-  
 from Basic import Stock, MarketPortfolio
 from Tool import DataProcessor, default_divide_ratio
 import numpy as np
