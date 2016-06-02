@@ -7,9 +7,9 @@ from copy import deepcopy
 TRANSACTION_COST = .003
 
 '''TODO
-	Stock(SN = 600000, start_date = string, interval = int)
-	Stock.getPrice(date_cnt = int)
-	predictNext(Stock,pred_date_cnt = int) or Stock.predictNext(pred_date_cnt = int)
+	dp.getPrice(stock, date_count=int)
+
+	dp.predictNext(stock, pred_date_count=int)
 '''
 
 class Investor:
@@ -31,19 +31,19 @@ class Investor:
 		
 
 	def LongOneShare(self,which):
-		nowPrice = self.stocks.getPrice(date_cnt = self.now)
+		nowPrice = self.stocks.getPrice(stock=self.stocks, date_count=self.now)
 		tax = nowPrice*TRANSACTION_COST
 		self.ttlCash[which] -= (nowPrice+tax)
 		self.ttlShare[which] += 1
 
 	def SellAndShortOne(self,which):
-		nowPrice = self.stocks.getPrice(date_cnt = self.now)
+		nowPrice = self.stocks.getPrice(stock=self.stocks, date_count=self.now)
 		tax = nowPrice*(self.ttlShare[which]+1)*TRANSACTION_COST
 		self.ttlCash[which] += ((self.ttlShare[which]+1)*nowPrice-tax)
 
 
 		## should buy one back the next day
-		tomoPrice[which] = self.stocks.getPrice(date_cnt = self.now+1)
+		tomoPrice[which] = self.stocks.getPrice(stock=self.stocks, date_count=self.now+1)
 		tax = tomoPrice*TRANSACTION_COST
 		self.ttlCash[which] -= (tomoPrice+tax)
 
@@ -53,8 +53,8 @@ class Investor:
 
 	def TradeNext(self):
 		today = self.now
-		trendPred = predictNext(stk = self.stocks,pred_date_cnt = today)
-		trendReal = int (self.stocks.getPrice(date_cnt = self.now+1) > self.stocks.getPrice(date_cnt = self.now))
+		trendPred = predictNext(stock = self.stocks,pred_date_count = today)
+		trendReal = int (self.stocks.getPrice(stock=self.stocks, date_count=self.now+1) > self.stocks.getPrice(stock=self.stocks, date_count=self.now))
 
 		if trendPred:
 			self.LongOneShare(which = 0)
@@ -69,7 +69,7 @@ class Investor:
 		self.now = today + 1
 
 	def getTotalROR(self):
-		nowPrice = self.stocks.getPrice(date_cnt = self.now)
+		nowPrice = self.stocks.getPrice(stock=self.stocks, date_count=self.now)
 		self.PV = [getPV(ttlCash[i],ttlShare[i],nowPrice) for i in range(2)]
 		ttlROR = [ float(self.PV[i]-self.inital_PV[i])/self.inital_PV[i] for i in range(2)]
 

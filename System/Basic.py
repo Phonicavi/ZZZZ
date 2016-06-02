@@ -37,7 +37,7 @@ class MarketPortfolio:
 		joblib.dump(self, MP_filename, compress=3)
 
 	def getPrice(self, item=6):
-		return np.array( [(self.raw[i, 0], self.raw[i, item]) for i in range(self.raw.shape[0])] )
+		return np.array([(self.raw[i, 0], self.raw[i, item]) for i in range(self.raw.shape[0])] )
 
 	def getROR(self, interval=1):
 		item = 3 # yahoo, item = 6; netease, item = 3
@@ -104,7 +104,6 @@ class Stock:
 		except Exception, e:
 			print Exception,":",e
 		self.SN = int(SN)
-		print "[Stock] Serial Number:", self.SN
 		try:
 			if not os.path.exists(MARKET_INVENTORY[base_type][0]):
 				mkt = MarketPortfolio(base_type)
@@ -129,6 +128,9 @@ class Stock:
 		# release raw & market
 		self.raw = []
 		self.market = []
+		# print info
+		print "[Stock] Serial Number:", self.SN
+		print "[Stock] Name:", self.Name
 
 	def cleanDate(self):
 		# clean
@@ -187,6 +189,7 @@ class Stock:
 			self.Volume = np.array(self.raw[:, 5])
 			self.Adj_Close = np.array(self.raw[:, 6])
 		else:
+			self.Name = self.raw[0, 2].decode('cp936')
 			self.Open = np.array(self.raw[:, 6])
 			self.High = np.array(self.raw[:, 4])
 			self.Low = np.array(self.raw[:, 5])

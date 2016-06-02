@@ -33,11 +33,11 @@ classifiers = [
 
 				# ("Random Forest(gini)", RandomForestClassifier(criterion='gini', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
 				# ("Random Forest", RandomForestClassifier(criterion='entropy', n_estimators=5000, max_features='auto', n_jobs=-1)),
-				# ("AdaBoost", AdaBoostClassifier(n_estimators=100)),
+				("AdaBoost", AdaBoostClassifier(n_estimators=100)),
 				# ("Gaussian Naive Bayes", GaussianNB()),
 				# ("LDA", LDA()),
 				# ("QDA", QDA()),
-				("GBDT", GradientBoostingClassifier(n_estimators=200, max_features='auto')),
+				# ("GBDT", GradientBoostingClassifier(n_estimators=200, max_features='auto')),
 				# ("SVM", GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=5)),
 				# ("SVM", NuSVC(class_weight='balanced'))
 				]
@@ -151,18 +151,21 @@ def forward_backward():
 
 
 if __name__ == '__main__':
-	StockPool = [600051, 600401, 600691, 600966, 600839]
+	StockPool = [600030, 600100, 600570, 600051, 600401, 600691, 600966, 600839]
 
 	# stk = Stock(600050, '2005-06-02', 7)
 	# dp = DataProcessor(stk, 15)
 
 	# dp.training()
 
+	'''
 	for stock in StockPool:
-		onlineLearning_demo(SSN=stock, onLine_batch_size=1, interv=20)
+		onlineLearning_demo(SSN=stock, onLine_batch_size=1, interv=1)
+	'''
 	# offlineLearning_demo(interv = 20)
 
 
+	stk = Stock(SN=600839, start_date='2005-06-02', interval=1)
 
 	'''
 	print stk._start, stk._end

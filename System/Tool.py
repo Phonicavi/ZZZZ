@@ -95,8 +95,7 @@ class DataProcessor():
 						assert(x.size == 1)
 						index = x[0, 0]
 					except Exception, e:
-						print feat
-						print "-----------", day
+						print "Fatel error missing day ... "
 						raise e
 					x_feat_a_day.append(float(feat[index, 1]))
 			x_feat_all_days.insert(0, (day, x_feat_a_day))
@@ -126,6 +125,7 @@ class DataProcessor():
 			print "Fatel error: illegal trading day ..."
 			raise e
 		print "[DataProcessor] IndexDate", self.predictNil
+		print "[DataProcessor] Predict: start from ", self.date_raw[self.predictNil]
 
 	def splitRaw(self):
 		self.X_train = self.X_raw[:int(len(self.X_raw)*self.divide_ratio)]
@@ -146,6 +146,9 @@ class DataProcessor():
 		y_split = self.y_raw[head:tail+1]
 		date_split = self.date_raw[head:tail+1]
 		return X_split, y_split, date_split
+
+	def getPrice(self, stock, date_count):
+		return stock.Adj_Close[self.predictNil+date_count]
 
 
 	def training(self, flag=False):
