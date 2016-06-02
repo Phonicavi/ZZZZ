@@ -72,10 +72,10 @@ def play(self):
 	print cnt
 	print error
 
-def offlineLearning_demo(interv =1):
+def offlineLearning_demo(SSN, interv =1):
 
-	stk = Stock(SN=600050, start_date='2005-06-02', interval=interv)
-	dp = DataProcessor(stock=stk, window_size=7)
+	stk = Stock(SN=SSN, start_date='2005-06-02', interval=interv)
+	dp = DataProcessor(stock=stk, window_size=3)
 	print "dp.X_train length:" ,len(dp.X_train)
 
 	# dp.X_train,dp.X_test = featureSelection (dp.X_train,dp.y_train,dp.X_test,dp.y_test,method = 'f_class',testmode = False,n_features_to_select = None)
@@ -94,11 +94,11 @@ def offlineLearning_demo(interv =1):
 		accuracy = clf.score(dp.X_test, dp.y_test)
 		print("\t\tAccuracy = %0.4f" % accuracy)
 
-def onlineLearning_demo(onLine_batch_size=1, interv=1):
-	stk = Stock(SN=600050, start_date='2005-06-02', interval=interv)
-	dp = DataProcessor(stock=stk, window_size=7)
+def onlineLearning_demo(SSN, onLine_batch_size=1, interv=1):
+	stk = Stock(SN=SSN, start_date='2005-06-02', interval=interv, base_type=0)
+	dp = DataProcessor(stock=stk, window_size=3)
 
-	train_batch_size = int(len(dp.X_raw)*default_divide_ratio)
+	# train_batch_size = int(len(dp.X_raw)*default_divide_ratio)
 	train_batch_size = 100
 	# const = 0.1 **(1.0/1000)
 	sampleW = [1 for i in range(10)]+[0.5 for i in range(20)]+[0.2 for i in range(30)]+[0.1 for i in range(40)]
@@ -148,26 +148,19 @@ def forward_backward():
 	print best_fea
 
 
-'''
-import numpy as np
-from Basic import *
-from Tool import *
-stk = Stock(SN=600050, start_date='2005-06-02', interval=1, base_type=0)
-dp = DataProcessor(stock=stk, window_size=7)
-
-
-'''
 
 
 if __name__ == '__main__':
-	StockPool = [600050, 600401, 600691, 600966, 600839]
+	StockPool = [600051, 600401, 600691, 600966, 600839]
 
 	# stk = Stock(600050, '2005-06-02', 7)
 	# dp = DataProcessor(stk, 15)
 
 	# dp.training()
 
-	onlineLearning_demo(20)
+	for stock in StockPool:
+		onlineLearning_demo(SSN=stock, onLine_batch_size=1, interv=20)
+	# offlineLearning_demo(interv = 20)
 
 
 
