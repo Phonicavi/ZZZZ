@@ -34,28 +34,20 @@ import math
 USED_FEATURE = []
 
 SVM_filename = "SVM_Classification.mdl"
-DIVIDE_RATIO = 0.9
+default_divide_ratio = 0.9
 
 
 
 class DataProcessor():
 	""" DataProcessor """
-	def __init__(self, stock, window_size=10):
+	def __init__(self, stock, window_size=10, divide_ratio=default_divide_ratio):
 		self.window_size = window_size
+		self.divide_ratio = default_divide_ratio
 		self.raw = self.filterFeature(stock=stock, used=USED_FEATURE)
 		(self.feature, self.X_raw, self.y_raw, self.date_raw) = self.extractFeature(stock=stock, window_size=window_size)
 		self.setIndexDate(stock=stock)
+		self.splitRaw()
 
-		self.X_train = self.X_raw[:int(len(self.X_raw)*DIVIDE_RATIO)]
-		self.X_test = self.X_raw[int(len(self.X_raw)*DIVIDE_RATIO):]
-
-		self.y_train = self.y_raw[:int(len(self.y_raw)*DIVIDE_RATIO)]
-		self.y_test = self.y_raw[int(len(self.y_raw)*DIVIDE_RATIO):]
-
-
-
-		# (self.X_train, self.X_test, self.y_train, self.y_test) = train_test_split(self.X_raw, self.y_raw, test_size=0.3, random_state=0)
-		# self.Model = SVC()
 		# TODO
 
 	def filterFeature(self, stock, used=USED_FEATURE):
@@ -132,6 +124,13 @@ class DataProcessor():
 			raise e
 		print "[DataProcessor] IndexDate", self.predictNil
 
+	def splitRaw(self):
+		self.X_train = self.X_raw[:int(len(self.X_raw)*self.divide_ratio)]
+		self.X_test = self.X_raw[int(len(self.X_raw)*self.divide_ratio):]
+		self.y_train = self.y_raw[:int(len(self.y_raw)*self.divide_ratio)]
+		self.y_test = self.y_raw[int(len(self.y_raw)*self.divide_ratio):]
+
+
 	def getRawByCount(self, start_count, end_count):
 		head = self.predictNil+start_count
 		tail = self.predictNil+end_count
@@ -160,26 +159,22 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from FeatureSelection import *
 
 
-tuned_parameters = [{'kernel': ['rbf'], 'gamma': [2**i for i in range(-8,8)], 'C': [2**i for i in range(-8,8)]},
- 					# {'kernel': ['linear'], 'C': [2**i for i in range(-8,9,2)]},
- 					# {'kernel': ['poly'], 'gamma': [2**i for i in range(-8,9,2)], 'C': [2**i for i in range(-8,9,2)], 'degree':[2,3,4]},
- 					]
-classifiers = [
-# ("Decision Tree",DecisionTreeClassifier(class_weight='balanced')), 
-# ("Random Forest(entropy)",RandomForestClassifier(criterion = 'entropy', n_estimators=100,max_features = 'auto',n_jobs= 4,class_weight='balanced')),
-# ("Extrenmely Forest(entropy)",ExtraTreesClassifier(criterion = 'entropy', n_estimators=100,max_features = 'auto',n_jobs= 4,class_weight='balanced')),
+tuned_parameters = [{'kernel':['rbf'], 'gamma':[2**i for i in range(-8, 8)], 'C':[2**i for i in range(-8, 8)]},
+ 					{'kernel':['linear'], 'C':[2**i for i in range(-8, 9, 2)]},
+ 					{'kernel':['poly'], 'gamma':[2**i for i in range(-8, 9, 2)], 'C':[2**i for i in range(-8, 9, 2)], 'degree':[2, 3, 4]}]
+classifiers = [("Decision Tree", DecisionTreeClassifier(class_weight='balanced')), 
+				("Random Forest(entropy)", RandomForestClassifier(criterion='entropy', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
+				("Extrenmely Forest(entropy)", ExtraTreesClassifier(criterion='entropy', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
 
-# ("Random Forest(gini)",RandomForestClassifier(criterion = 'gini', n_estimators=100,max_features = 'auto',n_jobs= 4,class_weight='balanced')),
-# ("Random Forest",RandomForestClassifier(criterion = 'entropy', n_estimators=5000,max_features = 'auto',n_jobs= -1)),
-# ("AdaBoost",AdaBoostClassifier( n_estimators=100,)),
-# ("Gaussian Naive Bayes",GaussianNB()),
-# ("LDA",LDA()),
-# ("QDA",QDA()),
-("GBDT",GradientBoostingClassifier(n_estimators=200, max_features = 'auto',)),
-# ("SVM",GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=5)),
-# ("SVM",NuSVC(class_weight='balanced')),
-
-]
+				("Random Forest(gini)", RandomForestClassifier(criterion='gini', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
+				("Random Forest", RandomForestClassifier(criterion='entropy', n_estimators=5000, max_features='auto', n_jobs=-1)),
+				("AdaBoost", AdaBoostClassifier(n_estimators=100)),
+				("Gaussian Naive Bayes", GaussianNB()),
+				("LDA", LDA()),
+				("QDA", QDA()),
+				("GBDT", GradientBoostingClassifier(n_estimators=200, max_features='auto')),
+				("SVM", GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=5)),
+				("SVM", NuSVC(class_weight='balanced'))]
 
 
 def offlineLearning_demo(interv =1):
@@ -219,7 +214,7 @@ def onlineLearning_demo(onLine_batch_size = 1,interv =1):
 
 
 
-	train_batch_size = int(len(dp.X_raw)*DIVIDE_RATIO)
+	train_batch_size = int(len(dp.X_raw)*default_divide_ratio)
 	train_batch_size = 100
 
 	# const = 0.1 **(1.0/1000)
@@ -232,7 +227,7 @@ def onlineLearning_demo(onLine_batch_size = 1,interv =1):
 		y_true = dp.y_test
 		y_pred = []
 
-		for step in range(int(len(dp.X_raw)*DIVIDE_RATIO),len(dp.X_raw),onLine_batch_size):
+		for step in range(int(len(dp.X_raw)*default_divide_ratio),len(dp.X_raw),onLine_batch_size):
 			sys.stdout.write('.'),
 			sys.stdout.flush()
 			trainHead = step-train_batch_size
