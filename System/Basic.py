@@ -11,8 +11,8 @@ import pandas as pd
 DATA_DIR = "../data/"
 
 default_start_date = '2014-06-02'
-default_base_type = 1
-MARKET_INVENTORY = [("MarketPortfolio.base", DATA_DIR+"000001_ss.csv"), 
+default_base_type = 0
+MARKET_INVENTORY = [("MarketPortfolio.base", DATA_DIR+"000001.csv"), 
 					("MarketPortfolioA.base", DATA_DIR+"000002.csv"), 
 					("MarketPortfolio50.base", DATA_DIR+"000016.csv")]
 
@@ -26,28 +26,24 @@ class MarketPortfolio:
 				SHANGZHENG-50
 
 	"""
-	def __init__(self, base_type=1):
+	def __init__(self, base_type=default_base_type):
 		self.TYPE = base_type
 		try:
 			(MP_filename, filename) = MARKET_INVENTORY[self.TYPE]
 			self.raw = np.array(pd.read_csv(filename))
-			(self._m, self._n)  = self.raw.shape
 		except Exception, e:
 			print Exception,":",e
 		# features
-		self.price = self.getPrice(item=6)
-		self.ROR = self.getROR(self.TYPE)
-		joblib.dump(self, MP_filename, compress = 3)
+		joblib.dump(self, MP_filename, compress=3)
+		# self.price = self.getPrice(item=6)
+		# self.ROR = self.getROR()
 
 	def getPrice(self, item=6):
-		return np.array( [(self.raw[i, 0], self.raw[i, item]) for i in range(self._m)] )
+		return np.array( [(self.raw[i, 0], self.raw[i, item]) for i in range(self.raw.shape[0])] )
 
-	def getROR(self, type, interval=1):
-		if type == 0:
-			item = 6
-		else:
-			item = 3
-		return np.array([(self.raw[i, 0], float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item]) for i in range(self._m-interval)])
+	def getROR(self, interval=1):
+		item = 3 # sina, item = 6; netease, item = 3
+		return np.array([(self.raw[i, 0], float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item]) for i in range(self.raw.shape[0]-interval)])
 
 
 class Stock:
@@ -94,7 +90,7 @@ class Stock:
 			label : 1 or -1
 
 	"""
-	def __init__(self, SN, start_date, interval):
+	def __init__(self, SN, start_date, interval, base_type=default_base_type):
 		SN_head = SN / 1000
 		assert(SN_head == 600 or SN_head == 601 or SN_head == 603) # Shanghai Stock Exchange - A
 		filename = DATA_DIR+str(SN)+"_ss.csv"
@@ -106,20 +102,24 @@ class Stock:
 			print Exception,":",e
 		self.SN = int(SN)
 		print "[Stock] Serial Number:", self.SN
-		(self._m, self._n)  = self.raw.shape
 		try:
-			if not os.path.exists(MARKET_INVENTORY[default_base_type][0]):
-				mkt = MarketPortfolio(default_base_type)
-			self.market = joblib.load(MARKET_INVENTORY[default_base_type][0])
+			if not os.path.exists(MARKET_INVENTORY[base_type][0]):
+				mkt = MarketPortfolio(base_type)
+			self.market = joblib.load(MARKET_INVENTORY[base_type][0])
 			print "[Stock] market-portfolio loaded ..."
 		except Exception, e:
 			print Exception,":",e
-		self.marketPrice = self.market.price
-		self.marketROR = self.market.ROR
+		# check date matching
+		try:
+			assert(self.checkDate())
+		except Exception, e:
+			print "Fatal error dates not matched ... "
+			raise e
 		# available data range
+		(self._m, self._n) = self.raw.shape
 		self._start = interval
 		self._end = self._m
-
+		# dump raw_data
 		self.dumpRaw(start_date=start_date)
 		self.getFeatures()
 		self.getLabel(interval=interval)
@@ -127,6 +127,37 @@ class Stock:
 		self.raw = []
 		self.market = []
 
+	def checkDate(self):
+		# clean
+		print "[Stock] clean data ..."
+		date_1 = self.market.raw[:, 0]
+		date_2 = np.array(self.raw[:, 0])
+		if not (date_1.shape == date_2.shape):
+			print "[Stock] different length ... "
+		new_market_raw = []
+		new_raw = []
+		i, j, k = 0, 0, 0
+		while (i<date_1.shape[0]) and (j<date_2.shape[0]):
+			if date_1[i] == date_2[j]:
+				k += 1
+				new_market_raw.append(self.market.raw[i])
+				new_raw.append(self.raw[j])
+			else:
+				print "interrupt interval: ", k
+				k = 0
+				if date_1[i] > date_2[j]: # market has more
+					print "market more - miss day: ", date_1[i]
+					i += 1
+				else: # self has more
+					print "self more - miss day: ", date_2[j]
+					j += 1
+			i += 1
+			j += 1
+		self.market.raw = np.array(new_market_raw)
+		self.raw = np.array(new_raw)
+		del new_market_raw
+		del new_raw
+		return True
 
 	def dumpRaw(self, start_date=default_start_date):
 		# date process
@@ -148,9 +179,12 @@ class Stock:
 		self.Volume = np.array(self.raw[:, 5])
 		self.Adj_Close = np.array(self.raw[:, 6])
 
+
 	def getFeatures(self):
 		# calculate features
 		print "[Stock] calculate features ..."
+		self.marketPrice = self.market.getPrice(item=6)
+		self.marketROR = self.market.getROR()
 		self.Volatility5 = self.getVolatility(interval=5)
 		self.Volatility10 = self.getVolatility(interval=10)
 		self.Volatility25 = self.getVolatility(interval=25)
