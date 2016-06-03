@@ -207,23 +207,27 @@ class DataProcessor():
 	def getMaxDateCount(self):
 		return self.date_raw.shape[0]-self.predictNil
 
-	def predictNext(self,stock, pred_date_count,train_batch_size = 100):
-		trainX,trainY,D = self.getRawByCount(pred_date_count-train_batch_size,pred_date_count);
+	def predictNext(self, stock, pred_date_count, train_batch_size=100, use_NN=True):
+		trainX, trainY, trainD = self.getRawByCount(pred_date_count-train_batch_size, pred_date_count);
 		# print trainX[0]
 		# print list(trainX)
 		sc = StandardScaler()
 		sc.fit(trainX)
 		trainX = sc.transform(trainX)
 
-
-		clf.fit((trainX),(trainY))
-		# print 'dsds'
-		testX,Y,D= self.getSingleRaw(pred_date_count)
-		testX = testX.reshape(1,-1)
+		testX, testY, testD = self.getSingleRaw(pred_date_count)
+		testX = testX.reshape(1, -1)
 		testX = sc.transform(testX)
-		# print testX
-		predY = clf.predict(testX)
-		return predY[0],Y,D
+
+		if use_NN:
+			from Power import NNet
+			predY = NNet(TrainX=trainX, TrainY=trainY, TestX=testX)
+		else:
+			clf.fit(trainX, trainY)
+			predY = clf.predict(testX)
+
+		return predY[0], testY, testD
+
 
 	def getDateCountByDateString(self, date_string):
 		x = np.argwhere(self.date_raw==date_string)

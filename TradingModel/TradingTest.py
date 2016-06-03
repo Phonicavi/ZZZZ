@@ -13,14 +13,9 @@ import random
 
 TRANSACTION_COST = .003
 
-'''TODO
-	dp.getPriceByCount(stock, date_count=int)
-
-	dp.predictNext(stock, pred_date_count=int)
-'''
-
 TRUEY = []
 PREDY = []
+
 
 
 def getPV(cash,share,price):
@@ -88,20 +83,22 @@ class Investor:
 		self.ttlShare[which] -= nshares
 		
 
-	def TradeNext(self):
+	def TradeNext(self, use_NN):
 		today = self.now
-		trendPred, trendPredX, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today)
+		use_NN=False
+		# trendPredY, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today)
+		trendPredY, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today, use_NN=use_NN)
 		trendReal = int(self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval) >= self.dp.getPriceByCount(stock=self.stocks, date_count=self.now))
 
-		# print "price:",self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval) ,self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
+		# print "price:", self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval), self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
 
 
-		# print nowD,self.now
-		# print trendPred,trendPredX,trendReal
+		# print nowD, self.now
+		# print trendPredY, trendLabelY, trendReal
 		TRUEY.append(trendReal)
-		PREDY.append(trendPred)
+		PREDY.append(trendPredY)
 
-		if trendPred:
+		if trendPredY:
 			# self.LongOneShare(which=0)
 			self.LongShares(which=0)
 		else:
@@ -127,18 +124,18 @@ class Investor:
 
 def main():
 	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=100, _start_date='2014-06-04', _stockcode=600050, _interval=7)
-	total = ZZZZ.maxcnt-ZZZZ.now 
-	pbar = ProgressBar(widgets=[' ',AnimatedMarker(),'Predicting: ', Percentage()],maxval=total).start()
-	while(ZZZZ.now<ZZZZ.maxcnt):
+	total = ZZZZ.maxcnt-ZZZZ.now
+	pbar = ProgressBar(widgets=[' ', AnimatedMarker(), 'Predicting: ', Percentage()], maxval=total).start()
+	while ZZZZ.now < ZZZZ.maxcnt:
 	    pbar.update(ZZZZ.now)
 	    time.sleep(0.01)
-	    ZZZZ.TradeNext()
+	    ZZZZ.TradeNext(use_NN=True)
 	pbar.finish()
 
 	print 
-	print classification_report(TRUEY,PREDY)
-	print "accu:",accuracy_score(TRUEY,PREDY)
-	print 'pred ROR:',ZZZZ.getTotalROR()[0],'%', '\t|\treal ROR:',ZZZZ.getTotalROR()[1] ,'%', 
+	print classification_report(TRUEY, PREDY)
+	print "accu:", accuracy_score(TRUEY, PREDY)
+	print 'pred ROR:', ZZZZ.getTotalROR()[0],'%', '\t|\treal ROR:', ZZZZ.getTotalROR()[1], '%'
 
 
 
