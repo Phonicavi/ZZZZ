@@ -4,7 +4,7 @@ sys.path.append('../System/')
 from Basic import Stock
 from copy import deepcopy
 from Tool import DataProcessor, default_divide_ratio
-from sklearn.metrics import classification_report,accuracy_score
+from sklearn.metrics import classification_report, accuracy_score
 from progressbar import *
 import random
 
@@ -150,5 +150,3 @@ if __name__ == '__main__':
 
 
 
-
-		

@@ -90,7 +90,7 @@ class Stock:
 			label : 1 or -1
 
 	"""
-	def __init__(self, SN, start_date, interval, base_type=default_base_type):
+	def __init__(self, SN, start_date=default_start_date, interval=5, base_type=default_base_type):
 		self.resource = "netease" # "yahoo"
 		SN_head = SN / 1000
 		assert(SN_head == 600 or SN_head == 601 or SN_head == 603) # Shanghai Stock Exchange - A
@@ -173,18 +173,24 @@ class Stock:
 		del new_raw
 		return True
 
-	def dumpRaw(self, start_date=default_start_date):
+	def dumpRaw(self, start_date):
 		# date process
 		print "[Stock] date process ..."
 		self.Date = np.array(self.raw[:, 0])
 		x = np.argwhere(self.Date==start_date)
-		try:
-			assert(x.size == 1)
+		if x.size == 1:
 			self._index = x[0, 0]
-		except Exception, e:
-			print "Fatal error illegal trading day ... "
-			raise e
-		self._index_date = start_date
+			self._index_date = start_date
+		else:
+			_index = 0
+			for item in self.Date:
+				if item < start_date:
+					self._index = _index
+					break
+				_index += 1
+			self._index = _index
+			self._index_date = self.Date[self._index]
+			print "[*Stock] start_date forward modified ... "
 		# basic features
 		if self.resource == "yahoo":
 			self.Open = np.array(self.raw[:, 1])
