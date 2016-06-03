@@ -26,9 +26,11 @@ class Investor:
 		self.name = _name
 		self.now = 0
 		self.interval = _interval
+		self.train_batch_size = 100
 		self.stocks = Stock(SN=_stockcode, start_date=_start_date, interval=_interval)
 
 		self.dp = DataProcessor(stock=self.stocks, window_size=3)
+		print "[Investor] Trainning: batch size =", self.train_batch_size
 
 		self.maxcnt = self.dp.getMaxDateCount()-self.interval-1
 
@@ -86,15 +88,9 @@ class Investor:
 	def TradeNext(self, use_NN):
 		today = self.now
 		use_NN=False
-		# trendPredY, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today)
-		trendPredY, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today, use_NN=use_NN)
+		trendPredY, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today, train_batch_size=self.train_batch_size, use_NN=use_NN)
 		trendReal = int(self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval) >= self.dp.getPriceByCount(stock=self.stocks, date_count=self.now))
 
-		# print "price:", self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval), self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
-
-
-		# print nowD, self.now
-		# print trendPredY, trendLabelY, trendReal
 		TRUEY.append(trendReal)
 		PREDY.append(trendPredY)
 
@@ -123,7 +119,7 @@ class Investor:
 		return ttlROR
 
 def main():
-	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=100, _start_date='2014-06-04', _stockcode=600050, _interval=7)
+	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=100, _start_date='2008-06-04', _stockcode=600050, _interval=20)
 	total = ZZZZ.maxcnt-ZZZZ.now
 	pbar = ProgressBar(widgets=[' ', AnimatedMarker(), 'Predicting: ', Percentage()], maxval=total).start()
 	while ZZZZ.now < ZZZZ.maxcnt:

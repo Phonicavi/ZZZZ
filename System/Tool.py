@@ -78,6 +78,7 @@ class DataProcessor():
 		self.raw = self.filterFeature(stock=stock, used=USED_FEATURE)
 		(self.feature, self.X_raw, self.y_raw, self.date_raw) = self.extractFeature(stock=stock, window_size=window_size)
 		self.setIndexDate(stock=stock)
+		self.printInfo(stock=stock)
 		self.splitRaw()
 		# TODO
 
@@ -158,8 +159,11 @@ class DataProcessor():
 		except Exception, e:
 			print "Fatal error: illegal trading day ..."
 			raise e
+
+	def printInfo(self, stock):
 		print "[DataProcessor] IndexDate", self.predictNil
 		print "[DataProcessor] Predict: start from ", self.date_raw[self.predictNil]
+		print "[DataProcessor] Predict interval: ", stock._interval, " Used window size: ", self.window_size
 
 	def splitRaw(self):
 		self.X_train = self.X_raw[:int(len(self.X_raw)*self.divide_ratio)]

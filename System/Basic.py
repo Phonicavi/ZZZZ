@@ -104,7 +104,7 @@ class Stock:
 		try:
 			self.raw = np.array(pd.read_csv(filename))
 		except Exception, e:
-			print Exception,":",e
+			print Exception, ":", e
 		self.SN = int(SN)
 		try:
 			if not os.path.exists(MARKET_INVENTORY[base_type][0]):
@@ -124,7 +124,8 @@ class Stock:
 			raise e
 		# available data range
 		(self._m, self._n) = self.raw.shape
-		self._start = interval
+		self._interval = interval
+		self._start = self._interval
 		self._end = self._m
 		# dump raw_data
 		self.dumpRaw(start_date=start_date)

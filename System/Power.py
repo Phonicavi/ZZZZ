@@ -1,17 +1,15 @@
 # -*- coding:utf-8 -*-
+import numpy as np
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation, Flatten
+from keras.layers.advanced_activations import PReLU
+from keras.layers.normalization import BatchNormalization
+from keras.optimizers import SGD, Adadelta, Adagrad, Adam, RMSprop
+from keras.utils import np_utils
+from keras.regularizers import l1, l2
+from keras.layers.convolutional import Convolution2D, MaxPooling2D
 
 def NNet(TrainX, TrainY, TestX):
-
-	import numpy as np
-	from keras.models import Sequential
-	from keras.layers.core import Dense, Dropout, Activation, Flatten
-	from keras.layers.advanced_activations import PReLU
-	from keras.layers.normalization import BatchNormalization
-	from keras.optimizers import SGD, Adadelta, Adagrad, Adam, RMSprop
-	from keras.utils import np_utils
-	from keras.regularizers import l1, l2
-	from keras.layers.convolutional import Convolution2D, MaxPooling2D
-
 
 	## the network remained to be XJBplay
 
