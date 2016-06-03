@@ -8,6 +8,8 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, Gradien
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import RandomizedPCA
 from sklearn.externals import joblib
 from sklearn.svm import SVC,NuSVC
 from datetime import date
@@ -64,7 +66,7 @@ classifiers = [
 				# ("SVM", GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=5)),
 				# ("SVM", NuSVC(class_weight='balanced'))
 				]
-clf = GradientBoostingClassifier(n_estimators=200, max_features='auto')
+clf = RandomForestClassifier(criterion='gini', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')
 
 
 
@@ -209,11 +211,18 @@ class DataProcessor():
 		trainX,trainY,D = self.getRawByCount(pred_date_count-train_batch_size,pred_date_count);
 		# print trainX[0]
 		# print list(trainX)
+		sc = StandardScaler()
+		sc.fit(trainX)
+		trainX = sc.transform(trainX)
+
+
 		clf.fit((trainX),(trainY))
 		# print 'dsds'
 		testX,Y,D= self.getSingleRaw(pred_date_count)
+		testX = testX.reshape(1,-1)
+		testX = sc.transform(testX)
 		# print testX
-		predY = clf.predict(testX.reshape(1,-1))
+		predY = clf.predict(testX)
 		return predY[0],Y,D
 
 	def getDateCountByDateString(self, date_string):

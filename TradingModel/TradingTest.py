@@ -5,6 +5,9 @@ from Basic import Stock
 from copy import deepcopy
 from Tool import DataProcessor, default_divide_ratio
 from sklearn.metrics import classification_report,accuracy_score
+from progressbar import *
+import random
+
 
 
 
@@ -49,6 +52,7 @@ class Investor:
 		nowPrice = self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
 		tax = nowPrice*TRANSACTION_COST
 		self.ttlCash[which] -= (nowPrice+tax)
+		assert(self.ttlCash[which]>=0)
 		self.ttlShare[which] += 1
 
 	def SellAndShortOne(self,which):
@@ -68,7 +72,10 @@ class Investor:
 	def LongShares(self,which,nshares = 100):
 		nowPrice = self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
 		tax = nowPrice*TRANSACTION_COST
+
+		nshares = min(nshares,int(self.ttlCash[which]/(nowPrice+tax)))
 		self.ttlCash[which] -= (nowPrice+tax)*nshares
+		assert(self.ttlCash[which]>=0)
 		self.ttlShare[which] += nshares
 
 	def SellShares(self,which,nshares=sys.maxint):
@@ -114,22 +121,24 @@ class Investor:
 	def getTotalROR(self):
 		nowPrice = self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
 		self.PV = [getPV(self.ttlCash[i], self.ttlShare[i], nowPrice) for i in range(2)]
-		ttlROR = [float(self.PV[i]-self.inital_PV[i])/self.inital_PV[i] for i in range(2)]
+		ttlROR = [float(self.PV[i]-self.inital_PV[i])/self.inital_PV[i]*100 for i in range(2)]
 
 		return ttlROR
 
 def main():
 	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=100, _start_date='2014-06-04', _stockcode=600050, _interval=7)
-
+	total = ZZZZ.maxcnt-ZZZZ.now 
+	pbar = ProgressBar(widgets=[' ',AnimatedMarker(),'Predicting: ', Percentage()],maxval=total).start()
 	while(ZZZZ.now<ZZZZ.maxcnt):
-		sys.stdout.write('>')
-		sys.stdout.flush()
-		ZZZZ.TradeNext()
+	    pbar.update(ZZZZ.now)
+	    time.sleep(0.01)
+	    ZZZZ.TradeNext()
+	pbar.finish()
+
 	print 
 	print classification_report(TRUEY,PREDY)
 	print "accu:",accuracy_score(TRUEY,PREDY)
-	print ZZZZ.getTotalROR()
-
+	print 'pred ROR:',ZZZZ.getTotalROR()[0],'%', '\t|\treal ROR:',ZZZZ.getTotalROR()[1] ,'%', 
 
 
 

@@ -14,9 +14,9 @@ DATA_DIR = "../data/"
 
 default_start_date = '2014-06-02'
 default_base_type = 0
-MARKET_INVENTORY = [("MarketPortfolio.base", DATA_DIR+"000001.csv"), 
-					("MarketPortfolioA.base", DATA_DIR+"000002.csv"), 
-					("MarketPortfolio50.base", DATA_DIR+"000016.csv")]
+MARKET_INVENTORY = [("../System/MarketPortfolio.base", DATA_DIR+"000001.csv"), 
+					("../System/MarketPortfolioA.base", DATA_DIR+"000002.csv"), 
+					("../System/MarketPortfolio50.base", DATA_DIR+"000016.csv")]
 
 class MarketPortfolio:
 	"""
