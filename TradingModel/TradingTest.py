@@ -4,7 +4,8 @@ sys.path.append('../System/')
 from Basic import Stock
 from copy import deepcopy
 from Tool import DataProcessor, default_divide_ratio
-from sklearn.metrics import classification_report, accuracy_score
+from helper import sort_dict, load, save
+from sklearn.metrics import classification_report, accuracy_score, f1_score
 from progressbar import *
 import random
 
@@ -16,40 +17,58 @@ TRANSACTION_COST = .003
 TRUEY = []
 PREDY = []
 
+STOCK_POOL = [600030, 600100, 600570, 600051, 600401, 600691, 600966, 600839]
 
 
 def getPV(cash,share,price):
 	return cash + share*price
 
 class Investor:
-	def __init__(self,_name='ZZZZ', _initial_virtual_shares=1000, _start_date='2010-06-04', _stockcode=600050, _interval=10):
+	def __init__(self,_name='ZZZZ', _initial_virtual_shares=1000, _start_date='2010-06-04', _end_date=None, _stockcode=600050, _interval=10):
 		self.name = _name
 		self.now = 0
 		self.interval = _interval
 		self.train_batch_size = 100
-		self.stocks = Stock(SN=_stockcode, start_date=_start_date, interval=_interval)
 
+		'''
+		self.stock_pool = []
+		self.dp_pool = []
+		self.maxcnt_pool = []
+		for _code in STOCK_POOL:
+			_stock = Stock(SN=_code, start_date=_start_date, interval=_interval)
+			_dp = DataProcessor(stock=_stock, window_size=3)
+			_maxcnt = _dp.getMaxDateCount()-self.interval-1
+			self.stock_pool.append(_stock)
+			self.dp_pool.append(_dp)
+			self.maxcnt_pool.append(_maxcnt)
+
+		'''
+		self.stocks = Stock(SN=_stockcode, start_date=_start_date, interval=_interval)
 		self.dp = DataProcessor(stock=self.stocks, window_size=3)
+		# self.maxcnt = self.dp.getMaxDateCount()-self.interval-1
+		if _end_date == None:
+			self.maxcnt = self.dp.getMaxDateCount()-self.interval-1
+		else:
+			self.maxcnt = min(self.dp.getDateCountByDateString(_end_date), self.dp.getMaxDateCount()-self.interval-1)
 		print "[Investor] Trainning: batch size =", self.train_batch_size
 
-		self.maxcnt = self.dp.getMaxDateCount()-self.interval-1
 
 
 		## 0 represent by prediction, 1 represent by real lbls
 		_initial_cash = self.dp.getPriceByCount(stock=self.stocks, date_count=0)*_initial_virtual_shares
 		self.ttlCash = [_initial_cash, _initial_cash]
-		self.ttlShare = [0,0]
-		self.PV = [self.ttlCash[0],self.ttlCash[0]]
+		self.ttlShare = [0, 0]
+		self.PV = [self.ttlCash[0], self.ttlCash[0]]
 		self.inital_PV = deepcopy(self.PV)
-		
 
-		
+
+
 
 	def LongOneShare(self,which):
 		nowPrice = self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
 		tax = nowPrice*TRANSACTION_COST
 		self.ttlCash[which] -= (nowPrice+tax)
-		assert(self.ttlCash[which]>=0)
+		assert(self.ttlCash[which] >= 0)
 		self.ttlShare[which] += 1
 
 	def SellAndShortOne(self,which):
@@ -118,25 +137,63 @@ class Investor:
 
 		return ttlROR
 
-def main():
-	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=100, _start_date='2008-06-04', _stockcode=600050, _interval=20)
+def regressHistory(_initial_virtual_shares, _start_date, _stockcode, _interval):
+	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=_initial_virtual_shares, _start_date=_start_date, _stockcode=_stockcode, _interval=_interval)
 	total = ZZZZ.maxcnt-ZZZZ.now
 	pbar = ProgressBar(widgets=[' ', AnimatedMarker(), 'Predicting: ', Percentage()], maxval=total).start()
 	while ZZZZ.now < ZZZZ.maxcnt:
 	    pbar.update(ZZZZ.now)
 	    time.sleep(0.01)
-	    ZZZZ.TradeNext(use_NN=True)
+	    ZZZZ.TradeNext(use_NN=False)
 	pbar.finish()
 
-	print 
+	print
 	print classification_report(TRUEY, PREDY)
-	print "accu:", accuracy_score(TRUEY, PREDY)
-	print 'pred ROR:', ZZZZ.getTotalROR()[0],'%', '\t|\treal ROR:', ZZZZ.getTotalROR()[1], '%'
+	f1 = f1_score(TRUEY, PREDY)
+	accuracy = accuracy_score(TRUEY, PREDY)
+	print "accuracy:", accuracy
+	predROR = ZZZZ.getTotalROR()[0]
+	realROR = ZZZZ.getTotalROR()[1]
+	assert not (realROR == 0)
+	print 'pred ROR:', predROR, '%', '\t|\treal ROR:', realROR, '%'
 
+	return predROR, realROR, f1, accuracy
+
+
+def StockSelection(stock_pool):
+	predict_list = {}
+	over_list = {}
+	f1_list = {}
+	accuracy_list = {}
+
+	for _code in stock_pool:
+		print "--------------------------------------------------------------------------------"
+		(predR, realR, f1, accuracy) = regressHistory(_initial_virtual_shares=100, _start_date='2008-06-04', _stockcode=_code, _interval=15)
+		predict_list[_code] = predR
+		over_list[_code] = float(predR/realR)
+		f1_list[_code] = f1
+		accuracy_list[_code] = accuracy
+		print "--------------------------------------------------------------------------------"
+
+	predict_list = sort_dict(predict_list)
+	over_list = sort_dict(over_list)
+	f1_list = sort_dict(f1_list)
+	accuracy_list = sort_dict(accuracy_list)
+
+	print "Predict Return rate: ", predict_list
+	print "Over Return rate: ", over_list
+	print "f1-score rank: ", f1_list
+	print "accuracy rank: ", accuracy_list
+
+	DIR_Storage = '../Results/'
+	save(str(predict_list), DIR_Storage+"predict_list.list")
+	save(str(over_list), DIR_Storage+"over_list.list")
+	save(str(f1_list), DIR_Storage+"f1_list.list")
+	save(str(accuracy_list), DIR_Storage+"accuracy_list.list")
 
 
 if __name__ == '__main__':
-	main()
+	StockSelection(stock_pool=STOCK_POOL)
 
 
 

@@ -110,7 +110,7 @@ class Stock:
 			if not os.path.exists(MARKET_INVENTORY[base_type][0]):
 				mkt = MarketPortfolio(base_type)
 			self.market = joblib.load(MARKET_INVENTORY[base_type][0])
-			print "[Stock] market-portfolio loaded ..."
+#			print "[Stock] market-portfolio loaded ..."
 		except Exception, e:
 			print Exception,":",e
 		# check date matching
@@ -140,11 +140,12 @@ class Stock:
 
 	def cleanDate(self):
 		# clean
-		print "[Stock] clean data ..."
+#		print "[Stock] clean data ..."
 		date_1 = self.market.raw[:, 0]
 		date_2 = np.array(self.raw[:, 0])
 		if not (date_1.shape == date_2.shape):
-			print "[Stock] different length ... "
+#			print "[Stock] different length ... "
+			pass
 		new_market_raw = []
 		new_raw = []
 		i, j, k = 0, 0, 0
@@ -152,6 +153,7 @@ class Stock:
 			if date_1[i] == date_2[j]:
 				# k += 1
 				if self.raw[j, 10] == 0:
+					# print "stop trading - no data: ", date_2[j]
 					i += 1
 					j += 1
 					continue
@@ -163,9 +165,11 @@ class Stock:
 				if date_1[i] > date_2[j]:
 					# print "market more - miss day: ", date_1[i]
 					i += 1
+					continue
 				else:
 					# print "self more - miss day: ", date_2[j]
 					j += 1
+					continue
 			i += 1
 			j += 1
 		self.market.raw = np.array(new_market_raw)
@@ -176,7 +180,7 @@ class Stock:
 
 	def dumpRaw(self, start_date):
 		# date process
-		print "[Stock] date process ..."
+#		print "[Stock] date process ..."
 		self.Date = np.array(self.raw[:, 0])
 		x = np.argwhere(self.Date==start_date)
 		if x.size == 1:
@@ -190,7 +194,7 @@ class Stock:
 					break
 				_index += 1
 			self._index = _index
-			self._index_date = self.Date[self._index]
+			self._index_date = self.Date[_index]
 			print "[*Stock] start_date forward modified ... "
 		# basic features
 		if self.resource == "yahoo":
@@ -212,7 +216,7 @@ class Stock:
 
 	def getFeatures(self):
 		# calculate features
-		print "[Stock] calculate features ..."
+#		print "[Stock] calculate features ..."
 		self.marketPrice = self.market.getPrice(item=6)
 		self.marketROR = self.market.getROR()
 		self.Volatility5 = self.getVolatility(interval=5)
@@ -231,7 +235,7 @@ class Stock:
 	def getLabel(self, interval=1):
 		"""Formula: today_label = sign(future - today), Adj_Close"""
 		# calculate labels
-		print "[Stock] calculate label ..."
+#		print "[Stock] calculate label ..."
 		label = [(self.raw[i, 0], (1 if (self.Adj_Close[i-interval] >= self.Adj_Close[i]) else 0)) for i in xrange(interval, self._m)]
 		for x in range(interval):
 			label.insert(0, (self.raw[x, 0], float('nan')))

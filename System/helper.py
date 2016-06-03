@@ -3,7 +3,7 @@ import os
 from operator import itemgetter
 
 
-def sort_genre(Dict):
+def sort_dict(Dict):
 	"""
 		sort dictionary by values
 

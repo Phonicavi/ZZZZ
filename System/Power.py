@@ -9,6 +9,7 @@ from keras.utils import np_utils
 from keras.regularizers import l1, l2
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 
+
 def NNet(TrainX, TrainY, TestX):
 
 	## the network remained to be XJBplay
@@ -23,7 +24,7 @@ def NNet(TrainX, TrainY, TestX):
 	model.add(Dropout(0.5))
 
 
-	model.add(Dense(numNode, W_regularizer=l2(1),))
+	model.add(Dense(numNode, W_regularizer=l2(1)))
 	model.add(BatchNormalization())
 	model.add(Activation('tanh'))
 	model.add(Dropout(0.2))
@@ -34,7 +35,7 @@ def NNet(TrainX, TrainY, TestX):
 	model.add(PReLU())
 	model.add(Dropout(0.5))
 
-	model.add(Dense(numNode, W_regularizer=l2(1),))
+	model.add(Dense(numNode, W_regularizer=l2(1)))
 	model.add(BatchNormalization())
 	model.add(Activation('tanh'))
 	model.add(Dropout(0.2))

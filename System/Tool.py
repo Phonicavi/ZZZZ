@@ -84,7 +84,7 @@ class DataProcessor():
 
 	def filterFeature(self, stock, used=USED_FEATURE):
 		# feature selection & date intercept
-		print "[DataProcessor] feature selection & date intercept ..."
+#		print "[DataProcessor] feature selection & date intercept ..."
 		raw = [stock.Adj_Close,
 				stock.marketPrice,
 				stock.High,
@@ -114,7 +114,7 @@ class DataProcessor():
 
 	def extractFeature(self, stock, window_size=10):
 		# sample construction
-		print "[DataProcessor] sample construction ..."
+#		print "[DataProcessor] sample construction ..."
 		x_feat_all_days = []
 		for i in xrange(stock._end, stock._start-1, -1):
 			day = stock.Date[i]
@@ -161,8 +161,8 @@ class DataProcessor():
 			raise e
 
 	def printInfo(self, stock):
-		print "[DataProcessor] IndexDate", self.predictNil
 		print "[DataProcessor] Predict: start from ", self.date_raw[self.predictNil]
+		print "[DataProcessor] IndexDate", self.predictNil
 		print "[DataProcessor] Predict interval: ", stock._interval, " Used window size: ", self.window_size
 
 	def splitRaw(self):
