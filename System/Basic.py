@@ -78,19 +78,20 @@ class Stock:
 			HighROR
 			LowROR
 
-			alpha
-			beta
+			alpha, beta
 			SharpeR
 			WilliamsR
 			TreynorR
 			PVT
+			trendCount
+			contiTrend
 
 		labels
 
-			label : 1 or -1
+			label : 1 or 0
 
 	"""
-	def __init__(self, SN, start_date=default_start_date, interval=5, base_type=default_base_type):
+	def __init__(self, SN, start_date=default_start_date, interval=5, base_type=default_base_type, granularity=1, granu_count=10):
 		self.resource = "netease" # "yahoo"
 		SN_head = SN / 1000
 		assert(SN_head == 600 or SN_head == 601 or SN_head == 603) # Shanghai Stock Exchange - A
@@ -127,6 +128,8 @@ class Stock:
 		self._interval = interval
 		self._start = self._interval
 		self._end = self._m
+		self._granular = granularity
+		self._granu_count = granu_count
 		# dump raw_data
 		self.dumpRaw(start_date=start_date)
 		self.getFeatures()
@@ -231,6 +234,8 @@ class Stock:
 		self.WilliamsR = self.getWilliamsR()
 		self.TreynorR = self.getTreynorR()
 		self.PVT = self.getPVT()
+		self.trendCount = self.getTrendCount(granular=self._granular, granu_count=self._granu_count)
+		self.contiTrend = self.getContinualTrend(granular=self._granular)
 
 	def getLabel(self, interval=1):
 		"""Formula: today_label = sign(future - today), Adj_Close"""
@@ -240,9 +245,6 @@ class Stock:
 		for x in range(interval):
 			label.insert(0, (self.raw[x, 0], float('nan')))
 		self.label = np.array(label)
-
-	# def getRecentTrend(self,)
-
 
 
 	def getVolatility(self, interval=10):
@@ -255,12 +257,10 @@ class Stock:
 
 	def getROR(self, item=6, interval=1):
 		""" * """
-		if self.resource == "yahoo":
-			return np.array([(self.Date[i], float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item]) for i in range(self._m-interval)])
-		else:
+		if self.resource != "yahoo":
 			x = {1:6, 2:4, 3:5, 4:3, 5:10, 6:3}
 			item = x[item]
-			return np.array([(self.Date[i], float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item]) for i in range(self._m-interval)])
+		return np.array([(self.Date[i], float(self.raw[i, item]-self.raw[i+interval, item])/self.raw[i+interval, item]) for i in range(self._m-interval)])
 
 	def getAlphaBeta(self, interval=100):
 		"""Formula: (cov(dailyROR, marketROR)/var(marketROR)) or linear-regression:intercept, slope"""
@@ -281,10 +281,10 @@ class Stock:
 
 	def getWilliamsR(self):
 		""" * """
+		(x, y, z) = (4, 5, 3)
 		if self.resource == "yahoo":
-			return np.array([(self.Date[i], (float('nan') if (self.raw[i, 2]-self.raw[i, 3] == 0.0) else float(self.raw[i, 2]-self.raw[i, 4])*100/(self.raw[i, 2]-self.raw[i, 3]))) for i in range(self._m)])
-		else:
-			return np.array([(self.Date[i], (float('nan') if (self.raw[i, 4]-self.raw[i, 5] == 0.0) else float(self.raw[i, 4]-self.raw[i, 3])*100/(self.raw[i, 4]-self.raw[i, 5]))) for i in range(self._m)])
+			(x, y, z) = (2, 3, 4)
+		return np.array([(self.Date[i], (float('nan') if (self.raw[i, x]-self.raw[i, y] == 0.0) else float(self.raw[i, x]-self.raw[i, z])*100/(self.raw[i, x]-self.raw[i, y]))) for i in range(self._m)])
 
 	def getTreynorR(self):
 		"""Formula: (dailyROR - rfr)/beta # risk_free_return = 0"""
@@ -292,16 +292,46 @@ class Stock:
 
 	def getPVT(self):
 		"""Accumulation of PV: ROR*Volume"""
+		(x, y) = (3, 10)
 		if self.resource == "yahoo":
-			PV = np.array([(float(self.raw[i, 6]-self.raw[i+1, 6])/self.raw[i+1, 6])*self.raw[i, 5] for i in range(self._m-1)])
-		else:
-			PV = np.array([(float(self.raw[i, 3]-self.raw[i+1, 3])/self.raw[i+1, 3])*self.raw[i, 10] for i in range(self._m-1)])
+			(x, y) = (6, 5)
+		PV = np.array([(float(self.raw[i, x]-self.raw[i+1, x])/self.raw[i+1, x])*self.raw[i, y] for i in range(self._m-1)])
 		for i in xrange(len(PV)-1, 0, -1):
 			PV[i-1] += PV[i]
 		PVT = []
 		for i in xrange(len(PV)-1, 0, -1):
 			PVT.insert(0, (self.Date[i], PV[i]))
 		return np.array(PVT)
+
+	def getTrendCount(self, granular, granu_count):
+		""" * """
+		TCount = []
+		for i in range(len(self.Adj_Close)-granular*granu_count):
+			time = i
+			tc = 0
+			for x in range(granu_count):
+				time += granular
+				tc += (1 if (self.Adj_Close[time-granular] >= self.Adj_Close[time]) else -1)
+			# print (self.Date[i], tc)
+			TCount.append((self.Date[i], tc))
+		return np.array(TCount)
+
+	def	getContinualTrend(self, granular):
+		""" * """
+		ContiTrend = []
+		for i in range(len(self.Adj_Close)-granular):
+			time = i
+			trend = (1 if (self.Adj_Close[time] >= self.Adj_Close[time+granular]) else -1)
+			ct = 0
+			while time+granular < len(self.Adj_Close):
+				sign = (1 if (self.Adj_Close[time] >= self.Adj_Close[time+granular]) else -1)
+				if sign != trend:
+					break
+				ct += sign
+				time += granular
+			# print (self.Date[i], ct)
+			ContiTrend.append((self.Date[i], ct))
+		return np.array(ContiTrend)
 
 	"""
 		Set Values

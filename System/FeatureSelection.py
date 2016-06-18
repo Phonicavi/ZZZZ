@@ -146,7 +146,6 @@ def featureSelection (X, Y, Tx, Ty, method='mean', testmode=False, n_features_to
 
 
 
-
-
-
+if __name__ == '__main__':
+	pass
 

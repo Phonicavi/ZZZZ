@@ -40,9 +40,11 @@ from FeatureSelection import *
 	>>> stock.SharpeR,
 	>>> stock.TreynorR,
 	>>> stock.PVT
+	>>> stock.trendCount
+	>>> stock.contiTrend
 
 '''
-USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 SVM_filename = "SVM_Classification.mdl"
 default_divide_ratio = 0.9
@@ -103,7 +105,9 @@ class DataProcessor():
 				stock.beta,
 				stock.SharpeR,
 				stock.TreynorR,
-				stock.PVT]
+				stock.PVT,
+				stock.trendCount,
+				stock.contiTrend]
 		assert(len(raw) == len(USED_FEATURE))
 		tmp = []
 		for i in range(len(USED_FEATURE)):
@@ -227,7 +231,7 @@ class DataProcessor():
 
 		fs_method = 'RFC'
 
-		trainX,testX = featureSelection (trainX, trainY, testX, [], method=fs_method, testmode=False, n_features_to_select=None)
+	trainX,testX = featureSelection (trainX, trainY, testX, [], method=fs_method, testmode=False, n_features_to_select=None)
 
 		if use_NN:
 			from Power import NNet

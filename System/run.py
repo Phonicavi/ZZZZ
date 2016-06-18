@@ -167,6 +167,12 @@ if __name__ == '__main__':
 
 
 	stk = Stock(SN=600839, start_date='2005-06-02', interval=1)
+	# print stk.dailyROR
+	# print stk.WilliamsR
+	# print stk.PVT
+	# print stk.trendCount
+	# print stk.contiTrend
+	# print stk.Date
 
 	'''
 	print stk._start, stk._end
