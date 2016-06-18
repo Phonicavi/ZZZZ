@@ -16,7 +16,7 @@ def NNet(TrainX, TrainY, TestX):
 
 	model = Sequential()
 
-	numNode = 100
+	numNode = 40
 
 	model.add(Dense(numNode, input_dim=len(TrainX[0]), W_regularizer=l1(0.1)))
 	model.add(BatchNormalization())
@@ -24,10 +24,10 @@ def NNet(TrainX, TrainY, TestX):
 	model.add(Dropout(0.5))
 
 
-	model.add(Dense(numNode, W_regularizer=l2(1)))
-	model.add(BatchNormalization())
-	model.add(Activation('tanh'))
-	model.add(Dropout(0.2))
+	# model.add(Dense(numNode, W_regularizer=l2(1)))
+	# model.add(BatchNormalization())
+	# model.add(Activation('tanh'))
+	# model.add(Dropout(0.2))
 
 
 	model.add(Dense(numNode, W_regularizer=l1(0.1)))

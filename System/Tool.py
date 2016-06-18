@@ -67,7 +67,7 @@ classifiers = [
 				# ("SVM", GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=5)),
 				# ("SVM", NuSVC(class_weight='balanced'))
 				]
-clf = RandomForestClassifier(criterion='gini', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')
+clf = RandomForestClassifier(criterion='gini', n_estimators=150, max_features='auto', n_jobs=4, class_weight='balanced')
 # clf =GradientBoostingClassifier(n_estimators=20, max_features='auto')
 
 
@@ -225,7 +225,7 @@ class DataProcessor():
 		trainX = sc.transform(trainX)
 		testX = sc.transform(testX)
 
-		fs_method = 'MIC'
+		fs_method = 'RFC'
 
 		trainX,testX = featureSelection (trainX, trainY, testX, [], method=fs_method, testmode=False, n_features_to_select=None)
 

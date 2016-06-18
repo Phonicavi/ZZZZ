@@ -241,6 +241,8 @@ class Stock:
 			label.insert(0, (self.raw[x, 0], float('nan')))
 		self.label = np.array(label)
 
+	# def getRecentTrend(self,)
+
 
 
 	def getVolatility(self, interval=10):

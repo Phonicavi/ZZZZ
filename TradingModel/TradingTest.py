@@ -17,7 +17,9 @@ TRANSACTION_COST = .003
 TRUEY = []
 PREDY = []
 
-STOCK_POOL = [600030, 600100, 600570, 600051, 600401, 600691, 600966, 600839]
+STOCK_POOL = [600030, 600570, 600051, 600401, 600691, 600966, 600839]
+# STOCK_POOL = [600210, 600487, 600598, 600419, 600572, 600718, 600756, 600536, 600776]
+
 
 
 def getPV(cash,share,price):
@@ -108,7 +110,7 @@ class Investor:
 		TRUEY.append(trendReal)
 		PREDY.append(trendPredY)
 
-		# if (not trendReal==trendPredY):
+		# if (not trendReal==trendPredY and trendReal == False):
 		# 	print trendPred_prob,'true=',trendReal,' pred=',trendPredY
 
 		if trendPredY :
@@ -164,7 +166,7 @@ def StockSelection(stock_pool):
 
 	for _code in stock_pool:
 		print "--------------------------------------------------------------------------------"
-		(predR, realR, f1, accuracy) = backtestHistory(_initial_virtual_shares=100, _start_date='2008-06-04', _stockcode=_code, _interval=15)
+		(predR, realR, f1, accuracy) = backtestHistory(_initial_virtual_shares=100, _start_date='2014-06-04', _stockcode=_code, _interval=5)
 		predict_list[_code] = predR
 		over_list[_code] = float(predR/realR)
 		f1_list[_code] = f1
