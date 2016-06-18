@@ -11,7 +11,8 @@ from sklearn.cross_validation import StratifiedKFold
 def featureSelection (X, Y, Tx, Ty, method='mean', testmode=False, n_features_to_select=None):
 	assert testmode in [False, True], 'TestMode must be Boolean!'
 	assert method in ['RFECV', 'f_class', 'MIC', 'RFC', 'Stab', 'mean', 'Ridge'], 'Not this method!'
-	print 'Using Feature Selection Method: ', method
+	if testmode:
+		print 'Using Feature Selection Method: ', method
 	# X = []
 	# Y = []
 
@@ -38,7 +39,8 @@ def featureSelection (X, Y, Tx, Ty, method='mean', testmode=False, n_features_to
 		n_features_to_select = len(X[0])/2
 		pass
 
-	print 'Start Selection ... '
+	if testmode:
+		print 'Start Selection ... '
 
 
 	if (method == 'RFECV') or (method == 'mean'):
@@ -50,12 +52,14 @@ def featureSelection (X, Y, Tx, Ty, method='mean', testmode=False, n_features_to
               )
 		rfecv.fit(X, Y)
 		ranks["RFECV"] = rank_to_dict(map(float, rfecv.ranking_), names, order=-1)
-		print("<RFECV> Optimal number of features : %d" % rfecv.n_features_)
+		if testmode:
+			print("<RFECV> Optimal number of features : %d" % rfecv.n_features_)
 		if method == 'RFECV':
 			for (idx, b) in enumerate(rfecv.support_):
 				if (b == True):
 					select_idx.append(idx)
-			print select_idx
+			if testmode:
+				print select_idx
 		# print [i for (i,b) in rfecv.support_ == True]
 
 	if method == 'Ridge' or method == 'mean':
@@ -110,10 +114,10 @@ def featureSelection (X, Y, Tx, Ty, method='mean', testmode=False, n_features_to
 	if not method == 'RFECV':
 		dic = ranks[method]
 		# print dic
-		print '===='
 		select_idx = [tp[0] for tp in sorted(dic.iteritems(), key=lambda d:d[1], reverse = True)[:n_features_to_select]]
 
-	print 'select_idx: ', select_idx
+	if testmode:
+		print 'select_idx: ', select_idx
 
 	newX = []
 	newTx = []
@@ -132,9 +136,9 @@ def featureSelection (X, Y, Tx, Ty, method='mean', testmode=False, n_features_to
 		newTx.append(newfea)
 		
 		
-
-	print 'len of Left Feature: ', len(newX[0])
-	print 'Finish Selection ... '
+	if testmode:
+		print 'len of Left Feature: ', len(newX[0])
+		print 'Finish Selection ... '
 	return np.array(newX), np.array(newTx)
 
 

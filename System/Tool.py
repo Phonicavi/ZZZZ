@@ -9,7 +9,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import RandomizedPCA
+from sklearn.decomposition import RandomizedPCA,PCA,SparsePCA
 from sklearn.externals import joblib
 from sklearn.svm import SVC,NuSVC
 from datetime import date
@@ -19,6 +19,7 @@ import helper
 import numpy as np
 import pandas as pd
 from copy import deepcopy
+from FeatureSelection import *
 
 
 
@@ -47,7 +48,7 @@ SVM_filename = "SVM_Classification.mdl"
 default_divide_ratio = 0.9
 
 tuned_parameters = [
-					{'kernel':['rbf'], 'gamma':[2**i for i in range(-8, 8)], 'C':[2**i for i in range(-8, 8)]},
+					{'kernel':['rbf'], 'C':[2**i for i in range(-8, 8)]},
  					# {'kernel':['linear'], 'C':[2**i for i in range(-8, 9, 2)]},
  					# {'kernel':['poly'], 'gamma':[2**i for i in range(-8, 9, 2)], 'C':[2**i for i in range(-8, 9, 2)], 'degree':[2, 3, 4]}
  					]
@@ -67,6 +68,8 @@ classifiers = [
 				# ("SVM", NuSVC(class_weight='balanced'))
 				]
 clf = RandomForestClassifier(criterion='gini', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')
+# clf =GradientBoostingClassifier(n_estimators=20, max_features='auto')
+
 
 
 
@@ -213,24 +216,29 @@ class DataProcessor():
 
 	def predictNext(self, stock, pred_date_count, train_batch_size=100, use_NN=True):
 		trainX, trainY, trainD = self.getRawByCount(pred_date_count-train_batch_size, pred_date_count);
+		testX, testY, testD = self.getSingleRaw(pred_date_count)
+		testX = testX.reshape(1, -1)
 		# print trainX[0]
 		# print list(trainX)
 		sc = StandardScaler()
 		sc.fit(trainX)
 		trainX = sc.transform(trainX)
-
-		testX, testY, testD = self.getSingleRaw(pred_date_count)
-		testX = testX.reshape(1, -1)
 		testX = sc.transform(testX)
+
+		fs_method = 'MIC'
+
+		trainX,testX = featureSelection (trainX, trainY, testX, [], method=fs_method, testmode=False, n_features_to_select=None)
 
 		if use_NN:
 			from Power import NNet
 			predY = NNet(TrainX=trainX, TrainY=trainY, TestX=testX)
+			pred_pro=[1,0]
 		else:
 			clf.fit(trainX, trainY)
 			predY = clf.predict(testX)
+			pred_pro = (clf.predict_proba(testX) if hasattr(clf, "predict_proba") else clf.decision_function(testX))
 
-		return predY[0], testY, testD
+		return predY[0], pred_pro[0],testY, testD
 
 
 	def getDateCountByDateString(self, date_string):

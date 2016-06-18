@@ -28,7 +28,7 @@ class Investor:
 		self.name = _name
 		self.now = 0
 		self.interval = _interval
-		self.train_batch_size = 100
+		self.train_batch_size = 200
 
 		'''
 		self.stock_pool = []
@@ -64,23 +64,18 @@ class Investor:
 
 
 
-	def LongOneShare(self,which):
-		nowPrice = self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
-		tax = nowPrice*TRANSACTION_COST
-		self.ttlCash[which] -= (nowPrice+tax)
-		assert(self.ttlCash[which] >= 0)
-		self.ttlShare[which] += 1
 
-	def SellAndShortOne(self,which):
+
+	def SellAndShort(self,which,shortshares = 1):
 		nowPrice = self.dp.getPriceByCount(stock=self.stocks, date_count=self.now)
-		tax = nowPrice*(self.ttlShare[which]+1)*TRANSACTION_COST
-		self.ttlCash[which] += ((self.ttlShare[which]+1)*nowPrice-tax)
+		tax = nowPrice*(self.ttlShare[which]+shortshares)*TRANSACTION_COST
+		self.ttlCash[which] += ((self.ttlShare[which]+shortshares)*nowPrice-tax)
 
 
 		## should buy one back the next day
-		tomoPrice[which] = self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+1)
-		tax = tomoPrice*TRANSACTION_COST
-		self.ttlCash[which] -= (tomoPrice+tax)
+		tomoPrice = self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval)
+		tax = tomoPrice*shortshares*TRANSACTION_COST
+		self.ttlCash[which] -= (tomoPrice*shortshares+tax)
 
 		# set Share to zero
 		self.ttlShare[which] = 0
@@ -107,25 +102,26 @@ class Investor:
 	def TradeNext(self, use_NN):
 		today = self.now
 		use_NN=False
-		trendPredY, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today, train_batch_size=self.train_batch_size, use_NN=use_NN)
+		trendPredY, trendPred_prob, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today, train_batch_size=self.train_batch_size, use_NN=use_NN)
 		trendReal = int(self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval) >= self.dp.getPriceByCount(stock=self.stocks, date_count=self.now))
 
 		TRUEY.append(trendReal)
 		PREDY.append(trendPredY)
 
-		if trendPredY:
-			# self.LongOneShare(which=0)
+		# if (not trendReal==trendPredY):
+		# 	print trendPred_prob,'true=',trendReal,' pred=',trendPredY
+
+		if trendPredY :
 			self.LongShares(which=0)
 		else:
-			# self.SellAndShortOne(which=0)
-			self.SellShares(which=0)
+			self.SellAndShort(which=0,shortshares=10)
+			# self.SellShares(which=0)
 
 		if trendReal:
-			# self.LongOneShare(which=1)
 			self.LongShares(which=1)
 		else:
-			# self.SellAndShortOne(which=1)
-			self.SellShares(which=1)
+			self.SellAndShort(which=1,shortshares=10)
+			# self.SellShares(which=1)
 
 		self.now = today + self.interval
 		# print self.now
@@ -137,7 +133,7 @@ class Investor:
 
 		return ttlROR
 
-def regressHistory(_initial_virtual_shares, _start_date, _stockcode, _interval):
+def backtestHistory(_initial_virtual_shares, _start_date, _stockcode, _interval):
 	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=_initial_virtual_shares, _start_date=_start_date, _stockcode=_stockcode, _interval=_interval)
 	total = ZZZZ.maxcnt-ZZZZ.now
 	pbar = ProgressBar(widgets=[' ', AnimatedMarker(), 'Predicting: ', Percentage()], maxval=total).start()
@@ -168,7 +164,7 @@ def StockSelection(stock_pool):
 
 	for _code in stock_pool:
 		print "--------------------------------------------------------------------------------"
-		(predR, realR, f1, accuracy) = regressHistory(_initial_virtual_shares=100, _start_date='2008-06-04', _stockcode=_code, _interval=15)
+		(predR, realR, f1, accuracy) = backtestHistory(_initial_virtual_shares=100, _start_date='2008-06-04', _stockcode=_code, _interval=15)
 		predict_list[_code] = predR
 		over_list[_code] = float(predR/realR)
 		f1_list[_code] = f1
