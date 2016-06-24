@@ -14,8 +14,8 @@ import random
 
 TRANSACTION_COST = .003
 
-TRUEY = []
-PREDY = []
+# TRUEY = []
+# PREDY = []
 
 STOCK_POOL = [600030]
 # STOCK_POOL = [600030, 600570, 600051, 600401, 600691, 600966, 600839]
@@ -32,6 +32,8 @@ class Investor:
 		self.now = 0
 		self.interval = _interval
 		self.train_batch_size = 100
+		self.TRUEY = []
+		self.PREDY = []
 
 		'''
 		self.stock_pool = []
@@ -108,8 +110,8 @@ class Investor:
 		trendPredY, trendPred_prob, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today, train_batch_size=self.train_batch_size, use_NN=use_NN)
 		trendReal = int(self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval) >= self.dp.getPriceByCount(stock=self.stocks, date_count=self.now))
 
-		TRUEY.append(trendReal)
-		PREDY.append(trendPredY)
+		self.TRUEY.append(trendReal)
+		self.PREDY.append(trendPredY)
 
 		# if (not trendReal==trendPredY and trendReal == False):
 		# 	print trendPred_prob,'true=',trendReal,' pred=',trendPredY
@@ -147,9 +149,9 @@ def backtestHistory(_initial_virtual_shares, _start_date, _stockcode, _interval)
 	pbar.finish()
 
 	print
-	print classification_report(TRUEY, PREDY)
-	f1 = f1_score(TRUEY, PREDY)
-	accuracy = accuracy_score(TRUEY, PREDY)
+	print classification_report(ZZZZ.TRUEY, ZZZZ.PREDY)
+	f1 = f1_score(ZZZZ.TRUEY, ZZZZ.PREDY)
+	accuracy = accuracy_score(ZZZZ.TRUEY, ZZZZ.PREDY)
 	print "accuracy:", accuracy
 	predROR = ZZZZ.getTotalROR()[0]
 	realROR = ZZZZ.getTotalROR()[1]
@@ -275,7 +277,7 @@ def StockSearch(intvl = 5,cores = 4):
 
 if __name__ == '__main__':
 	# StockSelection(stock_pool=STOCK_POOL)
-	StockSearch(intvl = 100,cores = 8)
+	StockSearch(intvl = 10,cores = 4)
 
 
 
