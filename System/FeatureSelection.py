@@ -4,7 +4,7 @@ from sklearn.linear_model import (LinearRegression, Ridge, Lasso, RandomizedLass
 from sklearn.feature_selection import RFECV, f_classif, chi2
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
-from minepy import MINE
+# from minepy import MINE
 from sklearn.svm import SVC
 from sklearn.cross_validation import StratifiedKFold
 
@@ -69,14 +69,14 @@ def featureSelection (X, Y, Tx, Ty, method='mean', testmode=False, n_features_to
 
 
 	
-	if method == 'MIC' or method == 'mean':
-		mine = MINE()
-		mic_scores = []
-		for i in range(X.shape[1]):
-		    mine.compute_score(X[:, i], Y)
-		    m = mine.mic()
-		    mic_scores.append(m)
-		ranks["MIC"] = rank_to_dict(mic_scores, names)
+	# if method == 'MIC' or method == 'mean':
+	# 	mine = MINE()
+	# 	mic_scores = []
+	# 	for i in range(X.shape[1]):
+	# 	    mine.compute_score(X[:, i], Y)
+	# 	    m = mine.mic()
+	# 	    mic_scores.append(m)
+	# 	ranks["MIC"] = rank_to_dict(mic_scores, names)
 
 	if method == 'f_class' or method == 'mean':
 		f, pval  = f_classif(X, Y)
@@ -90,7 +90,7 @@ def featureSelection (X, Y, Tx, Ty, method='mean', testmode=False, n_features_to
 	# 	ranks["chi2"] = rank_to_dict(f, names)
 
 	if method == 'RFC' or method == 'mean':
-		rf = RandomForestClassifier(criterion='entropy', n_estimators=200)
+		rf = RandomForestClassifier(criterion='gini', n_estimators=100)
 		rf.fit(X, Y)
 		ranks["RFC"] = rank_to_dict(rf.feature_importances_, names)
 

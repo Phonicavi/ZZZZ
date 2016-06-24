@@ -46,6 +46,7 @@ from FeatureSelection import *
 '''
 USED_FEATURE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
+
 SVM_filename = "SVM_Classification.mdl"
 default_divide_ratio = 0.9
 
@@ -69,8 +70,8 @@ classifiers = [
 				# ("SVM", GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=5)),
 				# ("SVM", NuSVC(class_weight='balanced'))
 				]
-clf = RandomForestClassifier(criterion='gini', n_estimators=150, max_features='auto', n_jobs=4, class_weight='balanced')
-# clf =GradientBoostingClassifier(n_estimators=20, max_features='auto')
+# clf = ExtraTreesClassifier(criterion='gini', n_estimators=150, max_features='auto', n_jobs=4, class_weight='balanced')
+# clf = GradientBoostingClassifier(n_estimators=200, max_features='auto')
 
 
 
@@ -229,15 +230,21 @@ class DataProcessor():
 		trainX = sc.transform(trainX)
 		testX = sc.transform(testX)
 
+		# trainX = np.delete(trainX,0,axis=1)
+		# testX = np.delete(testX,0,axis=1)
+
+
 		fs_method = 'RFC'
 
-	trainX,testX = featureSelection (trainX, trainY, testX, [], method=fs_method, testmode=False, n_features_to_select=None)
+		trainX,testX = featureSelection (trainX, trainY, testX, [], method=fs_method, testmode=False, n_features_to_select=None)
 
 		if use_NN:
 			from Power import NNet
 			predY = NNet(TrainX=trainX, TrainY=trainY, TestX=testX)
+			# print predY
 			pred_pro=[1,0]
 		else:
+			clf = ExtraTreesClassifier(criterion='gini', n_estimators=150, max_features='auto', n_jobs=2, class_weight='balanced')
 			clf.fit(trainX, trainY)
 			predY = clf.predict(testX)
 			pred_pro = (clf.predict_proba(testX) if hasattr(clf, "predict_proba") else clf.decision_function(testX))

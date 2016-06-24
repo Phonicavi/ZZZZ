@@ -4,7 +4,7 @@ sys.path.append('../System/')
 from Basic import Stock
 from copy import deepcopy
 from Tool import DataProcessor, default_divide_ratio
-from helper import sort_dict, load, save
+from helper import *
 from sklearn.metrics import classification_report, accuracy_score, f1_score
 from progressbar import *
 import random
@@ -17,7 +17,7 @@ TRANSACTION_COST = .003
 TRUEY = []
 PREDY = []
 
-STOCK_POOL = [600570]
+STOCK_POOL = [600030]
 # STOCK_POOL = [600030, 600570, 600051, 600401, 600691, 600966, 600839]
 # STOCK_POOL = [600210, 600487, 600598, 600419, 600572, 600718, 600756, 600536, 600776]
 
@@ -31,7 +31,7 @@ class Investor:
 		self.name = _name
 		self.now = 0
 		self.interval = _interval
-		self.train_batch_size = 200
+		self.train_batch_size = 100
 
 		'''
 		self.stock_pool = []
@@ -46,7 +46,7 @@ class Investor:
 			self.maxcnt_pool.append(_maxcnt)
 
 		'''
-		self.stocks = Stock(SN=_stockcode, start_date=_start_date, interval=_interval)
+		self.stocks = Stock(SN=_stockcode, start_date=_start_date, interval=_interval,granularity=_interval, granu_count=10)
 		self.dp = DataProcessor(stock=self.stocks, window_size=3)
 		# self.maxcnt = self.dp.getMaxDateCount()-self.interval-1
 		if _end_date == None:
@@ -104,7 +104,7 @@ class Investor:
 
 	def TradeNext(self, use_NN):
 		today = self.now
-		use_NN=False
+		use_NN = False
 		trendPredY, trendPred_prob, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today, train_batch_size=self.train_batch_size, use_NN=use_NN)
 		trendReal = int(self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval) >= self.dp.getPriceByCount(stock=self.stocks, date_count=self.now))
 
@@ -156,7 +156,7 @@ def backtestHistory(_initial_virtual_shares, _start_date, _stockcode, _interval)
 	assert not (realROR == 0)
 	print 'pred ROR:', predROR, '%', '\t|\treal ROR:', realROR, '%'
 
-	return predROR, realROR, f1, accuracy
+	return predROR, realROR, f1, accuracy,total
 
 
 def StockSelection(stock_pool):
@@ -167,7 +167,7 @@ def StockSelection(stock_pool):
 
 	for _code in stock_pool:
 		print "--------------------------------------------------------------------------------"
-		(predR, realR, f1, accuracy) = backtestHistory(_initial_virtual_shares=100, _start_date='2014-06-04', _stockcode=_code, _interval=5)
+		(predR, realR, f1, accuracy,ttl) = backtestHistory(_initial_virtual_shares=100, _start_date='2014-06-04', _stockcode=_code, _interval=10)
 		predict_list[_code] = predR
 		over_list[_code] = float(predR/realR)
 		f1_list[_code] = f1
@@ -190,9 +190,92 @@ def StockSelection(stock_pool):
 	save(str(f1_list), DIR_Storage+"f1_list.list")
 	save(str(accuracy_list), DIR_Storage+"accuracy_list.list")
 
+def StockSearch(intvl = 5,cores = 4):
+
+	import os
+	import threading
+
+
+	foldername = "./result("+str(intvl)+"day)/"
+
+	if not os.path.exists(foldername):
+		os.mkdir(foldername)
+
+	with open("stockPool.li","r") as f1:
+		stock_pool = [eval(item) for item in eval(f1.read())]
+	# stock_pool = [600210, 600487, 600598, 600419, 600572, 600718, 600756, 600536, 600776]
+
+	# predict_list = {}
+	# over_list = {}
+	# f1_list = {}
+	# accuracy_list = {}
+	def thd(i):
+		name = i
+		fw = open(foldername+str(name)+'.tmp','w+')
+		fw.close()
+		# fw = open(foldername+str(i)+'.tmp','a')
+
+		while(i<len(stock_pool)):
+			try:
+				fw = open(foldername+str(name)+'.tmp','a')
+				(predR, realR, f1, accuracy, ttl) = backtestHistory(_initial_virtual_shares=100, _start_date='2013-06-05', _stockcode=stock_pool[i], _interval=intvl)
+				fw.write("'"+str(stock_pool[i])+','+str(predR)+','+str(realR)+','+str(float(predR/realR))+','+str(f1)+','+str(accuracy)+","+str(ttl)+'\n')
+				fw.close()
+			except:
+				pass
+			i+=cores
+			
+
+	TASK = []
+	for i in range(cores):
+		TASK.append(threading.Thread(target = thd,args = (i,)))
+	for t in TASK:
+		t.start()
+	for t in TASK:
+		t.join();
+
+	fres = open(foldername+'res_'+str(intvl)+"day.csv","w+")
+	fres.write('code,PredReturnRate,RealReturnRate,OverReturnRate,f1,accuracy,ttldays\n');
+	for i in range(cores):
+		ftmp = open(foldername+str(i)+'.tmp','r')
+		fres.write(ftmp.read())
+		ftmp.close()
+	fres.close()
+
+
+
+
+
+
+
+
+	# for _code in stock_pool:
+	# 	(predR, realR, f1, accuracy) = backtestHistory(_initial_virtual_shares=100, _start_date='2013-06-02', _stockcode=_code, _interval=intvl)
+	# 	predict_list[_code] = predR
+	# 	over_list[_code] = float(predR/realR)
+	# 	f1_list[_code] = f1
+	# 	accuracy_list[_code] = accuracy
+
+	# predict_list = sort_dict(predict_list)
+	# over_list = sort_dict(over_list)
+	# f1_list = sort_dict(f1_list)
+	# accuracy_list = sort_dict(accuracy_list)
+
+	# print "Predict Return rate: ", predict_list
+	# print "Over Return rate: ", over_list
+	# print "f1-score rank: ", f1_list
+	# print "accuracy rank: ", accuracy_list
+
+	# DIR_Storage = '../Results/'
+	# save(str(predict_list), DIR_Storage+"predict_list.list")
+	# save(str(over_list), DIR_Storage+"over_list.list")
+	# save(str(f1_list), DIR_Storage+"f1_list.list")
+	# save(str(accuracy_list), DIR_Storage+"accuracy_list.list")
+
 
 if __name__ == '__main__':
-	StockSelection(stock_pool=STOCK_POOL)
+	# StockSelection(stock_pool=STOCK_POOL)
+	StockSearch(intvl = 100,cores = 8)
 
 
 
