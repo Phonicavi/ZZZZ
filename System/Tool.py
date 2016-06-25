@@ -10,6 +10,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import RandomizedPCA,PCA,SparsePCA
+from sklearn.linear_model import LogisticRegression
 from sklearn.externals import joblib
 from sklearn.svm import SVC,NuSVC
 from datetime import date
@@ -235,6 +236,7 @@ class DataProcessor():
 
 
 		fs_method = 'RFC'
+		pred_pro=[1,0]
 
 		trainX,testX = featureSelection (trainX, trainY, testX, [], method=fs_method, testmode=False, n_features_to_select=None)
 
@@ -242,14 +244,15 @@ class DataProcessor():
 			from Power import NNet
 			predY = NNet(TrainX=trainX, TrainY=trainY, TestX=testX)
 			# print predY
-			pred_pro=[1,0]
+			# pred_pro=[1,0]
 		else:
-			clf = ExtraTreesClassifier(criterion='gini', n_estimators=150, max_features='auto', n_jobs=2, class_weight='balanced')
+			clf = ExtraTreesClassifier(criterion='gini', n_estimators=150, max_features='auto', n_jobs=4, class_weight='balanced')
+			# clf =  DecisionTreeClassifier(class_weight='balanced')
 			clf.fit(trainX, trainY)
 			predY = clf.predict(testX)
-			pred_pro = (clf.predict_proba(testX) if hasattr(clf, "predict_proba") else clf.decision_function(testX))
+			# pred_pro = (clf.predict_proba(testX) if hasattr(clf, "predict_proba") else clf.decision_function(testX))
 
-		return predY[0], pred_pro[0],testY, testD
+		return predY[0], pred_pro[0],testY, testD, 1-clf.score(trainX, trainY)
 
 
 	def getDateCountByDateString(self, date_string):

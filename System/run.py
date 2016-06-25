@@ -14,7 +14,7 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.externals import joblib
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV # as GSCV
-from sklearn.metrics import classification_report # as clfr
+from sklearn.metrics import classification_report ,accuracy_score,f1_score # as clfr
 from sklearn.svm import SVC,NuSVC
 from datetime import date
 
@@ -30,11 +30,11 @@ tuned_parameters = [
 classifiers = [
 				# ("Decision Tree", DecisionTreeClassifier(class_weight='balanced')), 
 				# ("Random Forest(entropy)", RandomForestClassifier(criterion='entropy', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
-				# ("Extrenmely Forest(entropy)", ExtraTreesClassifier(criterion='entropy', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
+				("Extrenmely Forest(entropy)", ExtraTreesClassifier(criterion='gini', n_estimators=150, max_features='auto', n_jobs=4, class_weight='balanced')),
 
 				# ("Random Forest(gini)", RandomForestClassifier(criterion='gini', n_estimators=100, max_features='auto', n_jobs=4, class_weight='balanced')),
 				# ("Random Forest", RandomForestClassifier(criterion='entropy', n_estimators=5000, max_features='auto', n_jobs=-1)),
-				("AdaBoost", AdaBoostClassifier(n_estimators=100)),
+				# ("AdaBoost", AdaBoostClassifier(n_estimators=100)),
 				# ("Gaussian Naive Bayes", GaussianNB()),
 				# ("LDA", LDA()),
 				# ("QDA", QDA()),
@@ -73,18 +73,22 @@ def play(self):
 	print cnt
 	print error
 
-def offlineLearning_demo(SSN, interv =1):
+def offlineLearning_demo(SSN, interv =1,train_batch_size=100):
 
-	stk = Stock(SN=SSN, start_date='2005-06-02', interval=interv)
+	stk = Stock(SN=SSN, start_date='2013-06-05', interval=interv,granularity=interv, granu_count=10)
 	dp = DataProcessor(stock=stk, window_size=3)
-	print "dp.X_train length:" ,len(dp.X_train)
+	# print "dp.X_train length:" ,len(dp.X_train)
+	trainX, trainY, trainD = dp.getRawByCount(0-train_batch_size, 0);
+	print dp.getMaxDateCount()-interv-1
+	testX, testY,D = dp.getRawByCount(0, (dp.getMaxDateCount()-interv-1));
+
 
 	# dp.X_train,dp.X_test = featureSelection (dp.X_train,dp.y_train,dp.X_test,dp.y_test,method = 'f_class',testmode = False,n_features_to_select = None)
 
 	for name, clf in classifiers:
-		clf.fit(dp.X_train, dp.y_train)
+		clf.fit(trainX, trainY)
 		# PredY = clf.predict(TestX)
-		y_true, y_pred = dp.y_test, clf.predict(dp.X_test)
+		y_true, y_pred = testY, clf.predict(testX)
 
 
 		print name
@@ -92,8 +96,13 @@ def offlineLearning_demo(SSN, interv =1):
 			print clf.best_params_
 
 		print classification_report(y_true, y_pred)
-		accuracy = clf.score(dp.X_test, dp.y_test)
-		print("\t\tAccuracy = %0.4f" % accuracy)
+		# print 'test error: ',accuracy_score(y_true,y_pred)
+
+		print 'accuracy: ',accuracy_score(y_true,y_pred)
+		print 'f1: ',f1_score(y_true,y_pred)
+
+		# accuracy = clf.score(dp.X_test, dp.y_test)
+		# print("\t\tAccuracy = %0.4f" % accuracy)
 
 def onlineLearning_demo(SSN, onLine_batch_size=1, interv=1):
 	stk = Stock(SN=SSN, start_date='2005-06-02', interval=interv, base_type=0)
@@ -152,35 +161,37 @@ def forward_backward():
 
 
 if __name__ == '__main__':
-	StockPool = [600030, 600100, 600570, 600051, 600401, 600691, 600966, 600839]
+	for size in [20,30,50,80,100,120,150,200,300]:
+		offlineLearning_demo(600530,15,train_batch_size = size)
+	# StockPool = [600030, 600100, 600570, 600051, 600401, 600691, 600966, 600839]
 
-	# stk = Stock(600050, '2005-06-02', 7)
-	# dp = DataProcessor(stk, 15)
+	# # stk = Stock(600050, '2005-06-02', 7)
+	# # dp = DataProcessor(stk, 15)
 
-	# dp.training()
+	# # dp.training()
 
 	
-	for stock in StockPool:
-		onlineLearning_demo(SSN=stock, onLine_batch_size=1, interv=20)
+	# for stock in StockPool:
+	# 	onlineLearning_demo(SSN=stock, onLine_batch_size=1, interv=20)
 	
-	# offlineLearning_demo(interv = 20)
+	# # offlineLearning_demo(interv = 20)
 
 
-	stk = Stock(SN=600839, start_date='2005-06-02', interval=1)
-	# print stk.dailyROR
-	# print stk.WilliamsR
-	# print stk.PVT
-	# print stk.trendCount
-	# print stk.contiTrend
-	# print stk.Date
+	# stk = Stock(SN=600839, start_date='2005-06-02', interval=1)
+	# # print stk.dailyROR
+	# # print stk.WilliamsR
+	# # print stk.PVT
+	# # print stk.trendCount
+	# # print stk.contiTrend
+	# # print stk.Date
 
-	'''
-	print stk._start, stk._end
-	print stk._index
+	# '''
+	# print stk._start, stk._end
+	# print stk._index
 
-	print ' ---- '
-	print dp.X_raw.shape
-	print dp.date_raw
+	# print ' ---- '
+	# print dp.X_raw.shape
+	# print dp.date_raw
 
-	'''
+	
 

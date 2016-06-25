@@ -27,13 +27,14 @@ def getPV(cash,share,price):
 	return cash + share*price
 
 class Investor:
-	def __init__(self,_name='ZZZZ', _initial_virtual_shares=1000, _start_date='2010-06-04', _end_date=None, _stockcode=600050, _interval=10):
+	def __init__(self,_name='ZZZZ', _initial_virtual_shares=1000, _start_date='2010-06-04', _end_date=None, _stockcode=600050, _interval=10,_train_batch_size = 100):
 		self.name = _name
 		self.now = 0
 		self.interval = _interval
-		self.train_batch_size = 100
+		self.train_batch_size = _train_batch_size
 		self.TRUEY = []
 		self.PREDY = []
+		self.TRAINERROR = []
 
 		'''
 		self.stock_pool = []
@@ -107,11 +108,12 @@ class Investor:
 	def TradeNext(self, use_NN):
 		today = self.now
 		use_NN = False
-		trendPredY, trendPred_prob, trendLabelY, nowD = self.dp.predictNext(stock=self.stocks, pred_date_count=today, train_batch_size=self.train_batch_size, use_NN=use_NN)
+		trendPredY, trendPred_prob, trendLabelY, nowD , trainError= self.dp.predictNext(stock=self.stocks, pred_date_count=today, train_batch_size=self.train_batch_size, use_NN=use_NN)
 		trendReal = int(self.dp.getPriceByCount(stock=self.stocks, date_count=self.now+self.interval) >= self.dp.getPriceByCount(stock=self.stocks, date_count=self.now))
 
 		self.TRUEY.append(trendReal)
 		self.PREDY.append(trendPredY)
+		self.TRAINERROR.append(trainError)
 
 		# if (not trendReal==trendPredY and trendReal == False):
 		# 	print trendPred_prob,'true=',trendReal,' pred=',trendPredY
@@ -138,27 +140,28 @@ class Investor:
 
 		return ttlROR
 
-def backtestHistory(_initial_virtual_shares, _start_date, _stockcode, _interval):
-	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=_initial_virtual_shares, _start_date=_start_date, _stockcode=_stockcode, _interval=_interval)
+def backtestHistory(_initial_virtual_shares, _start_date, _stockcode, _interval,_train_batch_size = 100):
+	ZZZZ = Investor(_name='ZZZZ', _initial_virtual_shares=_initial_virtual_shares, _start_date=_start_date, _stockcode=_stockcode, _interval=_interval,_train_batch_size = _train_batch_size)
 	total = ZZZZ.maxcnt-ZZZZ.now
-	pbar = ProgressBar(widgets=[' ', AnimatedMarker(), 'Predicting: ', Percentage()], maxval=total).start()
+	# pbar = ProgressBar(widgets=[' ', AnimatedMarker(), 'Predicting: ', Percentage()], maxval=total).start()
 	while ZZZZ.now < ZZZZ.maxcnt:
-	    pbar.update(ZZZZ.now)
-	    time.sleep(0.01)
+	    # pbar.update(ZZZZ.now)
+	    # time.sleep(0.01)
 	    ZZZZ.TradeNext(use_NN=False)
-	pbar.finish()
+	# pbar.finish()
 
 	print
 	print classification_report(ZZZZ.TRUEY, ZZZZ.PREDY)
 	f1 = f1_score(ZZZZ.TRUEY, ZZZZ.PREDY)
 	accuracy = accuracy_score(ZZZZ.TRUEY, ZZZZ.PREDY)
 	print "accuracy:", accuracy
+	print "f1: ",f1
 	predROR = ZZZZ.getTotalROR()[0]
 	realROR = ZZZZ.getTotalROR()[1]
 	assert not (realROR == 0)
 	print 'pred ROR:', predROR, '%', '\t|\treal ROR:', realROR, '%'
 
-	return predROR, realROR, f1, accuracy,total
+	return predROR, realROR, f1, accuracy, total, ZZZZ.TRAINERROR
 
 
 def StockSelection(stock_pool):
@@ -198,7 +201,7 @@ def StockSearch(intvl = 5,cores = 4):
 	import threading
 
 
-	foldername = "./result("+str(intvl)+"day)/"
+	foldername = "./result("+str(intvl)+"day)3of4restrest/"
 
 	if not os.path.exists(foldername):
 		os.mkdir(foldername)
@@ -206,6 +209,10 @@ def StockSearch(intvl = 5,cores = 4):
 	with open("stockPool.li","r") as f1:
 		stock_pool = [eval(item) for item in eval(f1.read())]
 	# stock_pool = [600210, 600487, 600598, 600419, 600572, 600718, 600756, 600536, 600776]
+	stock_pool = stock_pool[int(len(stock_pool)*0.0)+704:int(len(stock_pool)*0.75)]
+	# stock_pool = stock_pool[::-1]
+	# stock_pool = stock_pool[128:int(len(stock_pool)*0.33)]
+
 
 	# predict_list = {}
 	# over_list = {}
@@ -228,13 +235,14 @@ def StockSearch(intvl = 5,cores = 4):
 			i+=cores
 			
 
-	TASK = []
-	for i in range(cores):
-		TASK.append(threading.Thread(target = thd,args = (i,)))
-	for t in TASK:
-		t.start()
-	for t in TASK:
-		t.join();
+	# TASK = []
+	# for i in range(cores):
+	# 	TASK.append(threading.Thread(target = thd,args = (i,)))
+	# for t in TASK:
+	# 	t.start()
+	# for t in TASK:
+	# 	t.join();
+	thd(0)
 
 	fres = open(foldername+'res_'+str(intvl)+"day.csv","w+")
 	fres.write('code,PredReturnRate,RealReturnRate,OverReturnRate,f1,accuracy,ttldays\n');
@@ -273,11 +281,25 @@ def StockSearch(intvl = 5,cores = 4):
 	# save(str(over_list), DIR_Storage+"over_list.list")
 	# save(str(f1_list), DIR_Storage+"f1_list.list")
 	# save(str(accuracy_list), DIR_Storage+"accuracy_list.list")
+def learningCurve():
+	f_lc = open('learningCurveDT.csv','w+')
+	for trainsize in [20,30,50,80,100,120,150,200,300]:
+		(predR, realR, f1, accuracy, ttl, train_error) = backtestHistory(_initial_virtual_shares=100, _start_date='2013-06-05', _stockcode=600530, _interval=10,_train_batch_size = trainsize )
+		print 'trainsize: ',trainsize,' train_error: ',sum(train_error)/len(train_error),' test_error:',1-accuracy
+		f_lc.write(str(trainsize)+ "," +str(sum(train_error)/len(train_error))+","+str(1-accuracy)+"\n")
+	f_lc.close()
+
+def selectDays():
+	for days in [5,15,20,25,35,40,45]:
+		(predR, realR, f1, accuracy, ttl, train_error) = backtestHistory(_initial_virtual_shares=100, _start_date='2013-06-05', _stockcode=600530, _interval=days )
+		# print 'trainsize: ',trainsize,' train_error: ',sum(train_error)/len(train_error),' test_error:',1-accuracy
+		# f_lc.write(str(trainsize)+ "," +str(sum(train_error)/len(train_error))+","+str(1-accuracy)+"\n")
 
 
 if __name__ == '__main__':
 	# StockSelection(stock_pool=STOCK_POOL)
-	StockSearch(intvl = 10,cores = 4)
+	# StockSearch(intvl = 10,cores = 1)
+	selectDays()
 
 
 
